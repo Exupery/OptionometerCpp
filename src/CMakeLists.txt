@@ -17,6 +17,7 @@ set(LIB_SOURCES
     ui/ResultsTableModel.cpp
     ui/ResultsSortFilterProxy.cpp
     ui/ColorDelegate.cpp
+    ui/DteCalendar.cpp
     ui/SettingsDialog.cpp
     workers/ScreenerWorker.cpp
 )
@@ -45,6 +46,7 @@ set(LIB_HEADERS
     ui/ResultsTableModel.h
     ui/ResultsSortFilterProxy.h
     ui/ColorDelegate.h
+    ui/DteCalendar.h
     ui/SettingsDialog.h
     workers/ScreenerWorker.h
 )

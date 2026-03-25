@@ -11,6 +11,8 @@
 #include <QPushButton>
 #include <QLabel>
 
+class DteCalendar;
+
 class ScreenerPanel : public QWidget {
     Q_OBJECT
 public:
@@ -29,6 +31,7 @@ signals:
 private:
     void setupUi();
     void onModeChanged(int index);
+    void updateCalendars();
 
     QLineEdit* m_symbolInput;
     QComboBox* m_modeCombo;
@@ -39,4 +42,6 @@ private:
     QCheckBox* m_fridaysOnly;
     QPushButton* m_screenButton;
     QLabel* m_rateLimitLabel;
+    DteCalendar* m_calendarCurrent;
+    DteCalendar* m_calendarNext;
 };

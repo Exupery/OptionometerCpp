@@ -1,6 +1,8 @@
 #include "ScreenerPanel.h"
+#include "DteCalendar.h"
 #include <QFormLayout>
 #include <QVBoxLayout>
+#include <QDate>
 
 ScreenerPanel::ScreenerPanel(QWidget* parent)
     : QWidget(parent)
@@ -60,6 +62,25 @@ void ScreenerPanel::setupUi() {
     form->addRow("", m_fridaysOnly);
 
     layout->addLayout(form);
+
+    // DTE range calendars
+    QDate today = QDate::currentDate();
+
+    m_calendarCurrent = new DteCalendar(this);
+    m_calendarCurrent->setCurrentPage(
+        today.year(), today.month());
+    m_calendarCurrent->setMaximumHeight(180);
+    layout->addWidget(m_calendarCurrent);
+
+    QDate nextMonth = today.addMonths(1);
+    m_calendarNext = new DteCalendar(this);
+    m_calendarNext->setCurrentPage(
+        nextMonth.year(), nextMonth.month());
+    m_calendarNext->setMaximumHeight(180);
+    layout->addWidget(m_calendarNext);
+
+    updateCalendars();
+
     layout->addStretch();
 
     m_screenButton = new QPushButton("Screen", this);
@@ -74,9 +95,16 @@ void ScreenerPanel::setupUi() {
         QOverload<int>::of(&QComboBox::currentIndexChanged),
         this, &ScreenerPanel::onModeChanged);
 
+    connect(m_minDays,
+        QOverload<int>::of(&QSpinBox::valueChanged),
+        this, [this]() { updateCalendars(); });
+
+    connect(m_maxDays,
+        QOverload<int>::of(&QSpinBox::valueChanged),
+        this, [this]() { updateCalendars(); });
+
     connect(m_screenButton, &QPushButton::clicked, this,
         [this]() {
-            // Params will be filled by MainWindow which has settings
             emit screenRequested({});
         });
 }
@@ -86,6 +114,13 @@ void ScreenerPanel::onModeChanged(int index) {
     bool bullPut = isBullPutMode(mode);
     m_tradeTypeCombo->setEnabled(!bullPut);
     if (bullPut) m_tradeTypeCombo->setCurrentIndex(0);
+}
+
+void ScreenerPanel::updateCalendars() {
+    int minDays = m_minDays->value();
+    int maxDays = m_maxDays->value();
+    m_calendarCurrent->setDteRange(minDays, maxDays);
+    m_calendarNext->setDteRange(minDays, maxDays);
 }
 
 void ScreenerPanel::restoreFromSettings(
@@ -98,6 +133,7 @@ void ScreenerPanel::restoreFromSettings(
     m_minDays->setValue(settings.lastMinDays);
     m_maxDays->setValue(settings.lastMaxDays);
     m_fridaysOnly->setChecked(settings.lastFridaysOnly);
+    updateCalendars();
 }
 
 void ScreenerPanel::saveToSettings(AppSettings& settings) const {
