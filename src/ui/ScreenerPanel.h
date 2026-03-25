@@ -10,6 +10,8 @@
 #include <QCheckBox>
 #include <QPushButton>
 #include <QLabel>
+#include <QSet>
+#include <QDate>
 
 class DteCalendar;
 
@@ -22,11 +24,15 @@ public:
     void saveToSettings(AppSettings& settings) const;
     void setScreening(bool screening);
     void setRateLimitRemaining(int remaining);
+    void setClosedDates(const QSet<QDate>& dates);
     ScreenerParams currentParams(
         const AppSettings& settings) const;
+    int minDays() const;
+    int maxDays() const;
 
 signals:
     void screenRequested(ScreenerParams params);
+    void dteRangeExtended(int minDays, int maxDays);
 
 private:
     void setupUi();
@@ -44,4 +50,6 @@ private:
     QLabel* m_rateLimitLabel;
     DteCalendar* m_calendarCurrent;
     DteCalendar* m_calendarNext;
+    int m_prevMinDays = 0;
+    int m_prevMaxDays = 0;
 };

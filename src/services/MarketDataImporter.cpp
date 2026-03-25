@@ -4,6 +4,10 @@
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QUrlQuery>
+#include <QStandardPaths>
+#include <QDir>
+#include <QFile>
+#include <QTextStream>
 #include <algorithm>
 
 static const QString ROOT_ENDPOINT =
@@ -35,11 +39,18 @@ void MarketDataImporter::fetchOptionChains(
     request.setRawHeader("Authorization",
         ("Bearer " + apiToken).toUtf8());
 
+    appendToLog("=== " + QDateTime::currentDateTime().toString(Qt::ISODate)
+        + " HTTP Request ===");
+    appendToLog("URL: " + url.toString());
+
     auto* reply = m_nam->get(request);
     connect(reply, &QNetworkReply::finished, this,
         [this, reply, ticker, fridaysOnly]() {
             reply->deleteLater();
             MarketDataResult result;
+
+            appendToLog("HTTP Status: " + QString::number(
+                reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt()));
 
             auto rlHeader = reply->rawHeader(
                 RATE_LIMIT_HEADER.toUtf8());
@@ -49,11 +60,16 @@ void MarketDataImporter::fetchOptionChains(
 
             if (reply->error() != QNetworkReply::NoError) {
                 result.errorMessage = reply->errorString();
+                appendToLog("HTTP Error: " + result.errorMessage);
                 emit finished(result);
                 return;
             }
 
             auto data = reply->readAll();
+            appendToLog("Response size: " + QString::number(data.size()) + " bytes");
+            // Log first 500 chars of response for debugging
+            appendToLog("Response preview: " + QString::fromUtf8(data.left(500)));
+
             result = parseResponse(data, ticker, fridaysOnly);
 
             if (!rlHeader.isEmpty()) {
@@ -86,17 +102,25 @@ MarketDataResult MarketDataImporter::parseResponse(
     auto deltas = root["delta"].toArray();
     auto prices = root["underlyingPrice"].toArray();
 
+    appendToLog("Parse: strikes=" + QString::number(strikes.size())
+        + " sides=" + QString::number(sides.size())
+        + " ivs=" + QString::number(ivs.size())
+        + " prices=" + QString::number(prices.size()));
+
     if (strikes.isEmpty() || prices.isEmpty()) {
         result.errorMessage = "Empty option chain";
+        appendToLog("Parse: EMPTY - strikes or prices array is empty");
         return result;
     }
 
     double underlyingPrice = prices[0].toDouble();
+    appendToLog("Parse: underlyingPrice=" + QString::number(underlyingPrice, 'f', 2));
 
+    int zeroIvCount = 0;
     std::vector<Option> allOptions;
     for (int i = 0; i < strikes.size(); ++i) {
         double iv = ivs[i].toDouble();
-        if (iv == 0.0) continue;
+        if (iv == 0.0) { ++zeroIvCount; continue; }
 
         Option opt;
         opt.symbol = symbols[i].toString();
@@ -113,13 +137,27 @@ MarketDataResult MarketDataImporter::parseResponse(
         allOptions.push_back(opt);
     }
 
+    appendToLog("Parse: total options in response=" + QString::number(strikes.size())
+        + " zeroIV filtered=" + QString::number(zeroIvCount)
+        + " surviving=" + QString::number(allOptions.size()));
+
     std::map<qint64, std::vector<Option>> byExpiry;
     for (const auto& opt : allOptions) {
         byExpiry[opt.expiry].push_back(opt);
     }
 
+    appendToLog("Parse: unique expiries=" + QString::number(byExpiry.size())
+        + " fridaysOnly=" + (fridaysOnly ? QString("true") : QString("false")));
+
+    int fridayFiltered = 0;
     for (auto& [expiry, options] : byExpiry) {
-        if (fridaysOnly && !expiresOnFriday(expiry)) continue;
+        if (fridaysOnly && !expiresOnFriday(expiry)) {
+            QDateTime dt = QDateTime::fromSecsSinceEpoch(expiry, Qt::UTC);
+            appendToLog("  Skipped expiry " + dt.date().toString(Qt::ISODate)
+                + " (day of week: " + QString::number(dt.date().dayOfWeek()) + ")");
+            ++fridayFiltered;
+            continue;
+        }
 
         OptionChain chain;
         chain.underlying = ticker;
@@ -145,6 +183,9 @@ MarketDataResult MarketDataImporter::parseResponse(
         result.chains.push_back(std::move(chain));
     }
 
+    appendToLog("Parse: fridayFiltered=" + QString::number(fridayFiltered)
+        + " chains built=" + QString::number(result.chains.size()));
+
     std::sort(result.chains.begin(), result.chains.end(),
         [](const OptionChain& a, const OptionChain& b) {
             return a.expiry < b.expiry;
@@ -160,4 +201,15 @@ qint64 MarketDataImporter::dteToEpoch(int dte) {
 bool MarketDataImporter::expiresOnFriday(qint64 epoch) {
     QDateTime dt = QDateTime::fromSecsSinceEpoch(epoch, Qt::UTC);
     return dt.date().dayOfWeek() == 5;
+}
+
+void MarketDataImporter::appendToLog(const QString& message) {
+    QString appData = QStandardPaths::writableLocation(
+        QStandardPaths::AppDataLocation);
+    QDir().mkpath(appData);
+    QFile file(appData + "/screener_debug.log");
+    if (!file.open(QIODevice::Append | QIODevice::Text))
+        return;
+    QTextStream out(&file);
+    out << message << "\n";
 }

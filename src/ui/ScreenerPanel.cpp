@@ -117,10 +117,17 @@ void ScreenerPanel::onModeChanged(int index) {
 }
 
 void ScreenerPanel::updateCalendars() {
-    int minDays = m_minDays->value();
-    int maxDays = m_maxDays->value();
-    m_calendarCurrent->setDteRange(minDays, maxDays);
-    m_calendarNext->setDteRange(minDays, maxDays);
+    int newMin = m_minDays->value();
+    int newMax = m_maxDays->value();
+    m_calendarCurrent->setDteRange(newMin, newMax);
+    m_calendarNext->setDteRange(newMin, newMax);
+
+    // Emit if range extended beyond what was previously fetched
+    if (newMin < m_prevMinDays || newMax > m_prevMaxDays) {
+        emit dteRangeExtended(newMin, newMax);
+    }
+    m_prevMinDays = newMin;
+    m_prevMaxDays = newMax;
 }
 
 void ScreenerPanel::restoreFromSettings(
@@ -157,6 +164,19 @@ void ScreenerPanel::setRateLimitRemaining(int remaining) {
             QString("Daily rate limit remaining: %1")
                 .arg(remaining));
     }
+}
+
+void ScreenerPanel::setClosedDates(const QSet<QDate>& dates) {
+    m_calendarCurrent->setClosedDates(dates);
+    m_calendarNext->setClosedDates(dates);
+}
+
+int ScreenerPanel::minDays() const {
+    return m_minDays->value();
+}
+
+int ScreenerPanel::maxDays() const {
+    return m_maxDays->value();
 }
 
 ScreenerParams ScreenerPanel::currentParams(

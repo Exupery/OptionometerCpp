@@ -8,9 +8,15 @@
 #include <QStatusBar>
 #include <QSplitter>
 #include <QVBoxLayout>
+#include <QNetworkReply>
+#include <QJsonDocument>
+#include <QJsonObject>
+#include <QJsonArray>
+#include <QUrlQuery>
 
 MainWindow::MainWindow(QWidget* parent)
     : QMainWindow(parent)
+    , m_marketStatusNam(new QNetworkAccessManager(this))
 {
     m_settings = m_settingsManager.load();
     loadApiTokenFromFile();
@@ -20,6 +26,11 @@ MainWindow::MainWindow(QWidget* parent)
     m_screenerPanel->restoreFromSettings(m_settings);
     setWindowTitle("Optionometer");
     resize(1200, 700);
+
+    // Initial market status fetch for current DTE range
+    fetchMarketStatus(
+        m_screenerPanel->minDays(),
+        m_screenerPanel->maxDays());
 }
 
 MainWindow::~MainWindow() {
@@ -73,6 +84,9 @@ void MainWindow::setupConnections() {
 
     connect(m_screenerPanel, &ScreenerPanel::screenRequested,
         this, &MainWindow::onScreenRequested);
+
+    connect(m_screenerPanel, &ScreenerPanel::dteRangeExtended,
+        this, &MainWindow::onDteRangeExtended);
 
     connect(m_worker, &ScreenerWorker::resultsReady,
         this, &MainWindow::onResultsReady,
@@ -209,4 +223,71 @@ void MainWindow::loadApiTokenFromFile() {
             m_settings.apiToken = token;
         }
     }
+}
+
+void MainWindow::onDteRangeExtended(int minDays, int maxDays) {
+    // Only re-fetch if the range actually extends beyond
+    // what we've already fetched
+    if (minDays >= m_fetchedMinDay && maxDays <= m_fetchedMaxDay)
+        return;
+    fetchMarketStatus(minDays, maxDays);
+}
+
+void MainWindow::fetchMarketStatus(int minDays, int maxDays) {
+    if (m_settings.apiToken.isEmpty()) return;
+
+    // Determine the actual range to fetch — union of old and new
+    int fetchMin = (m_fetchedMinDay > 0)
+        ? std::min(minDays, m_fetchedMinDay) : minDays;
+    int fetchMax = std::max(maxDays, m_fetchedMaxDay);
+
+    QDate today = QDate::currentDate();
+    QDate fromDate = today.addDays(fetchMin);
+    QDate toDate = today.addDays(fetchMax);
+
+    QUrl url("https://api.marketdata.app/v1/markets/status/");
+    QUrlQuery query;
+    query.addQueryItem("from", fromDate.toString(Qt::ISODate));
+    query.addQueryItem("to", toDate.toString(Qt::ISODate));
+    url.setQuery(query);
+
+    QNetworkRequest request(url);
+    request.setRawHeader("Authorization",
+        ("Bearer " + m_settings.apiToken).toUtf8());
+
+    auto* reply = m_marketStatusNam->get(request);
+    connect(reply, &QNetworkReply::finished, this,
+        [this, reply, fetchMin, fetchMax]() {
+            reply->deleteLater();
+
+            if (reply->error() != QNetworkReply::NoError)
+                return;
+
+            auto data = reply->readAll();
+            QJsonDocument doc = QJsonDocument::fromJson(data);
+            if (!doc.isObject()) return;
+
+            QJsonObject root = doc.object();
+            if (root["s"].toString() != "ok") return;
+
+            auto dates = root["date"].toArray();
+            auto statuses = root["status"].toArray();
+
+            for (int i = 0; i < dates.size(); ++i) {
+                if (statuses[i].toString() == "closed") {
+                    qint64 epoch = static_cast<qint64>(
+                        dates[i].toDouble());
+                    QDate d = QDateTime::fromSecsSinceEpoch(
+                        epoch, Qt::UTC).date();
+                    // Only add weekday closures (holidays)
+                    if (d.dayOfWeek() >= 1 && d.dayOfWeek() <= 5) {
+                        m_closedDates.insert(d);
+                    }
+                }
+            }
+
+            m_fetchedMinDay = fetchMin;
+            m_fetchedMaxDay = fetchMax;
+            m_screenerPanel->setClosedDates(m_closedDates);
+        });
 }

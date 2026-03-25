@@ -22,6 +22,11 @@ void DteCalendar::setDteRange(int minDays, int maxDays) {
     updateCells();
 }
 
+void DteCalendar::setClosedDates(const QSet<QDate>& dates) {
+    m_closedDates = dates;
+    updateCells();
+}
+
 void DteCalendar::paintCell(
     QPainter* painter,
     const QRect& rect,
@@ -33,10 +38,17 @@ void DteCalendar::paintCell(
     bool isCurrentMonth =
         (date.month() == monthShown()
          && date.year() == yearShown());
+    bool isWeekday = (date.dayOfWeek() >= 1
+                      && date.dayOfWeek() <= 5);
+    bool isClosed = m_closedDates.contains(date);
 
     if (!isCurrentMonth) {
         painter->setPen(QColor(80, 80, 80));
         painter->fillRect(rect, QColor(30, 30, 30));
+    } else if (inRange && isWeekday && isClosed) {
+        // Market holiday within DTE range
+        painter->fillRect(rect, QColor(180, 40, 40));
+        painter->setPen(Qt::white);
     } else if (inRange) {
         painter->fillRect(rect, QColor(42, 130, 218));
         painter->setPen(Qt::white);

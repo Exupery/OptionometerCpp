@@ -33,6 +33,7 @@ signals:
 private:
     static qint64 dteToEpoch(int dte);
     static bool expiresOnFriday(qint64 epoch);
+    static void appendToLog(const QString& message);
 
     QNetworkAccessManager* m_nam;
 };

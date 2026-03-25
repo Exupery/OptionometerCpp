@@ -8,6 +8,9 @@
 #include <QMainWindow>
 #include <QTabWidget>
 #include <QLabel>
+#include <QNetworkAccessManager>
+#include <QSet>
+#include <QDate>
 
 class MainWindow : public QMainWindow {
     Q_OBJECT
@@ -29,6 +32,8 @@ private:
     void onError(const QString& message);
     void onHiddenColumnsChanged(const QStringList& hidden);
     void loadApiTokenFromFile();
+    void fetchMarketStatus(int minDays, int maxDays);
+    void onDteRangeExtended(int minDays, int maxDays);
 
     SettingsManager m_settingsManager;
     AppSettings m_settings;
@@ -36,4 +41,8 @@ private:
     ScreenerPanel* m_screenerPanel;
     QLabel* m_statusLabel;
     ScreenerWorker* m_worker;
+    QNetworkAccessManager* m_marketStatusNam;
+    QSet<QDate> m_closedDates;
+    int m_fetchedMinDay = 0;
+    int m_fetchedMaxDay = 0;
 };
