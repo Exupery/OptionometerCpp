@@ -190,6 +190,9 @@ void MainWindow::onResultsReady(
             QString tabName = QString("%1 %2 %3d")
                 .arg(ticker, modeStr).arg(dte);
             int idx = m_tabWidget->addTab(tab, tabName);
+            m_tabWidget->setTabToolTip(idx,
+                QDate::currentDate().addDays(dte)
+                    .toString(Qt::ISODate));
             m_tabWidget->setCurrentIndex(idx);
 
             connect(tab, &ResultsTab::hiddenColumnsChanged,
@@ -208,6 +211,9 @@ void MainWindow::onResultsReady(
             QString tabName = QString("%1 %2 %3d")
                 .arg(ticker, modeStr).arg(dte);
             int idx = m_tabWidget->addTab(tab, tabName);
+            m_tabWidget->setTabToolTip(idx,
+                QDate::currentDate().addDays(dte)
+                    .toString(Qt::ISODate));
             m_tabWidget->setCurrentIndex(idx);
 
             connect(tab, &ResultsTab::hiddenColumnsChanged,
