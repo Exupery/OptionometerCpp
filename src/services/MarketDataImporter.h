@@ -27,13 +27,14 @@ public:
         const QByteArray& data, const QString& ticker,
         bool fridaysOnly);
 
+    static void appendToLog(const QString& message);
+
 signals:
     void finished(MarketDataResult result);
 
 private:
     static qint64 dteToEpoch(int dte);
     static bool expiresOnFriday(qint64 epoch);
-    static void appendToLog(const QString& message);
 
     QNetworkAccessManager* m_nam;
 };

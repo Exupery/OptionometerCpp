@@ -1,21 +1,26 @@
 #include "BullPutScorer.h"
 #include "Normalizer.h"
+#include "services/MarketDataImporter.h"
 #include <algorithm>
 #include <cmath>
 
 static constexpr int MAX_HIGH_SCORES = 100;
+static int s_scoreSingleLogCount = 0;
 
 BullPutScorer::BullPutScorer(
     double minProbability, double minProfitAmount,
-    double minAnnualReturn, int maxMargin)
+    double minAnnualReturn, int maxMargin,
+    const Weigher& weigher)
     : Scorer(minProbability, minProfitAmount, minAnnualReturn)
     , m_maxMargin(maxMargin)
+    , m_weigher(weigher)
 {}
 
 std::vector<ScoredBullPut> BullPutScorer::score(
     const std::vector<std::shared_ptr<Trade>>& trades,
     double underlyingPrice)
 {
+    s_scoreSingleLogCount = 0;
     std::vector<RawScoredBullPut> rawScored;
     for (const auto& trade : trades) {
         auto* raw = scoreSingle(trade, underlyingPrice);
@@ -31,27 +36,59 @@ RawScoredBullPut* BullPutScorer::scoreSingle(
     const std::shared_ptr<Trade>& trade,
     double underlyingPrice)
 {
-    if (!isValidBullPutSpread(*trade)) return nullptr;
+    bool shouldLog = (s_scoreSingleLogCount < 3);
 
-    double sd = calculateImpliedSd(
-        trade->getSells().front(), underlyingPrice);
+    if (!isValidBullPutSpread(*trade)) {
+        if (shouldLog) {
+            ++s_scoreSingleLogCount;
+            MarketDataImporter::appendToLog(
+                "    scoreSingle REJECTED: invalid bull put spread - "
+                + trade->toString());
+        }
+        return nullptr;
+    }
+
+    const auto& sellOpt = trade->getSells().front();
+    const auto& buyOpt = trade->getBuys().front();
+    double sd = calculateImpliedSd(sellOpt, underlyingPrice);
     StandardDeviationPrices sdPrices(underlyingPrice, sd);
     auto plByPrice = calcProfitLossByPrice(*trade, sdPrices);
 
     bool anyProfit = false;
+    double maxPl = -1e18;
     for (const auto& [_, pl] : plByPrice) {
+        if (pl > maxPl) maxPl = pl;
         if (pl >= m_minProfitAmount) { anyProfit = true; break; }
     }
-    if (!anyProfit) return nullptr;
+    if (!anyProfit) {
+        if (shouldLog) {
+            ++s_scoreSingleLogCount;
+            MarketDataImporter::appendToLog(
+                "    scoreSingle REJECTED: no profit >= " + QString::number(m_minProfitAmount)
+                + " maxPl=" + QString::number(maxPl, 'f', 4)
+                + " plByPrice.size=" + QString::number(plByPrice.size())
+                + " sd=" + QString::number(sd, 'f', 4)
+                + " sellIV=" + QString::number(sellOpt.impliedVolatility, 'f', 4)
+                + " sellDte=" + QString::number(sellOpt.dte)
+                + " sellStrike=" + QString::number(sellOpt.strike, 'f', 1)
+                + " sellBid=" + QString::number(sellOpt.bid, 'f', 4)
+                + " buyStrike=" + QString::number(buyOpt.strike, 'f', 1)
+                + " buyAsk=" + QString::number(buyOpt.ask, 'f', 4));
+        }
+        return nullptr;
+    }
 
     double prob = successProbability(
         plByPrice, underlyingPrice, sd);
-    if (prob < m_minProbability) return nullptr;
-
-    int dte = trade->getSells().front().dte;
-    double annual = annualReturnScore(
-        dte, prob, plByPrice, sdPrices, *trade);
-    if (annual < m_minAnnualReturn) return nullptr;
+    if (prob < m_minProbability) {
+        if (shouldLog) {
+            ++s_scoreSingleLogCount;
+            MarketDataImporter::appendToLog(
+                "    scoreSingle REJECTED: prob=" + QString::number(prob, 'f', 2)
+                + " < minProb=" + QString::number(m_minProbability));
+        }
+        return nullptr;
+    }
 
     auto perSpreadPl = calcBullPutMaxProfitLoss(
         *trade, prob, plByPrice);
@@ -69,6 +106,15 @@ RawScoredBullPut* BullPutScorer::scoreSingle(
 
     double annualBullPut = bullPutAnnualReturn(
         *trade, tradePl, prob);
+    if (annualBullPut < m_minAnnualReturn) {
+        if (shouldLog) {
+            ++s_scoreSingleLogCount;
+            MarketDataImporter::appendToLog(
+                "    scoreSingle REJECTED: annual=" + QString::number(annualBullPut, 'f', 2)
+                + " < minAnnual=" + QString::number(m_minAnnualReturn));
+        }
+        return nullptr;
+    }
 
     Score s;
     s.pricePointScore =
@@ -145,7 +191,7 @@ double BullPutScorer::bullPutAnnualReturn(
 std::vector<ScoredBullPut> BullPutScorer::normalize(
     const std::vector<RawScoredBullPut>& raw)
 {
-    auto result = Normalizer::normalizeBullPuts(raw);
+    auto result = Normalizer::normalizeBullPuts(raw, m_weigher);
     std::sort(result.begin(), result.end(),
         [](const ScoredBullPut& a, const ScoredBullPut& b) {
             return a.score > b.score;

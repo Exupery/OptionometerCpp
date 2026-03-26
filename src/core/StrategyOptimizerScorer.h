@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Scorer.h"
+#include "Weigher.h"
 #include "models/ScoredTrade.h"
 #include <vector>
 #include <memory>
@@ -10,7 +11,8 @@ public:
     explicit StrategyOptimizerScorer(
         double minProbability = 25.0,
         double minProfitAmount = 0.5,
-        double minAnnualReturn = 1.0);
+        double minAnnualReturn = 1.0,
+        const Weigher& weigher = Weigher());
 
     std::vector<ScoredTrade> score(
         const std::vector<std::shared_ptr<Trade>>& trades,
@@ -40,4 +42,6 @@ private:
 
     std::vector<ScoredTrade> normalize(
         const std::vector<RawScoredTrade>& raw);
+
+    Weigher m_weigher;
 };

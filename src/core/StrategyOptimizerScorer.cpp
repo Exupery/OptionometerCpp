@@ -8,8 +8,9 @@ static constexpr int MAX_HIGH_SCORES = 100;
 
 StrategyOptimizerScorer::StrategyOptimizerScorer(
     double minProbability, double minProfitAmount,
-    double minAnnualReturn)
+    double minAnnualReturn, const Weigher& weigher)
     : Scorer(minProbability, minProfitAmount, minAnnualReturn)
+    , m_weigher(weigher)
 {}
 
 std::vector<ScoredTrade> StrategyOptimizerScorer::score(
@@ -171,7 +172,7 @@ int StrategyOptimizerScorer::hundredTrades(
 std::vector<ScoredTrade> StrategyOptimizerScorer::normalize(
     const std::vector<RawScoredTrade>& raw)
 {
-    auto result = Normalizer::normalize(raw);
+    auto result = Normalizer::normalize(raw, m_weigher);
     std::sort(result.begin(), result.end(),
         [](const ScoredTrade& a, const ScoredTrade& b) {
             return a.score > b.score;
