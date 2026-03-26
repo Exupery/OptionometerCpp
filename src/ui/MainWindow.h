@@ -7,6 +7,7 @@
 #include "workers/ScreenerWorker.h"
 #include <QMainWindow>
 #include <QTabWidget>
+#include <QStackedWidget>
 #include <QLabel>
 #include <QNetworkAccessManager>
 #include <QSet>
@@ -35,8 +36,12 @@ private:
     void fetchMarketStatus(int minDays, int maxDays);
     void onDteRangeExtended(int minDays, int maxDays);
 
+    void updateTabVisibility();
+
     SettingsManager m_settingsManager;
     AppSettings m_settings;
+    QStackedWidget* m_stack;
+    QLabel* m_welcomeLabel;
     QTabWidget* m_tabWidget;
     ScreenerPanel* m_screenerPanel;
     QLabel* m_statusLabel;

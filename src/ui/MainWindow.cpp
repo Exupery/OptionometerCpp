@@ -1,7 +1,9 @@
 #include "MainWindow.h"
 #include "ResultsTab.h"
+#include <QAbstractSpinBox>
 #include <QApplication>
 #include <QCloseEvent>
+#include <QComboBox>
 #include <QFile>
 #include <QMenuBar>
 #include <QMessageBox>
@@ -13,6 +15,24 @@
 #include <QJsonObject>
 #include <QJsonArray>
 #include <QUrlQuery>
+#include <QWheelEvent>
+
+// Prevents mousewheel from changing spinbox/combobox values
+class WheelGuard : public QObject {
+public:
+    using QObject::QObject;
+protected:
+    bool eventFilter(QObject* obj, QEvent* event) override {
+        if (event->type() == QEvent::Wheel) {
+            if (qobject_cast<QAbstractSpinBox*>(obj)
+                || qobject_cast<QComboBox*>(obj)) {
+                event->ignore();
+                return true;
+            }
+        }
+        return false;
+    }
+};
 
 MainWindow::MainWindow(QWidget* parent)
     : QMainWindow(parent)
@@ -23,6 +43,9 @@ MainWindow::MainWindow(QWidget* parent)
     setupUi();
     setupMenuBar();
     setupConnections();
+
+    // Disable mousewheel mutation on spinboxes and comboboxes
+    qApp->installEventFilter(new WheelGuard(this));
     m_screenerPanel->restoreFromSettings(m_settings);
     setWindowTitle("Optionometer");
     resize(1200, 700);
@@ -45,19 +68,19 @@ void MainWindow::setupUi() {
     m_screenerPanel->setMaximumWidth(350);
     splitter->addWidget(m_screenerPanel);
 
+    m_stack = new QStackedWidget(this);
+
+    m_welcomeLabel = new QLabel(
+        "Configure parameters and click Screen to begin.",
+        this);
+    m_welcomeLabel->setAlignment(Qt::AlignCenter);
+    m_stack->addWidget(m_welcomeLabel);
+
     m_tabWidget = new QTabWidget(this);
     m_tabWidget->setTabsClosable(true);
+    m_stack->addWidget(m_tabWidget);
 
-    auto* welcomeWidget = new QWidget(this);
-    auto* wLayout = new QVBoxLayout(welcomeWidget);
-    auto* welcomeLabel = new QLabel(
-        "Configure parameters and click Screen to begin.",
-        welcomeWidget);
-    welcomeLabel->setAlignment(Qt::AlignCenter);
-    wLayout->addWidget(welcomeLabel);
-    m_tabWidget->addTab(welcomeWidget, "Screener");
-
-    splitter->addWidget(m_tabWidget);
+    splitter->addWidget(m_stack);
     splitter->setStretchFactor(0, 0);
     splitter->setStretchFactor(1, 1);
     setCentralWidget(splitter);
@@ -77,9 +100,8 @@ void MainWindow::setupConnections() {
 
     connect(m_tabWidget, &QTabWidget::tabCloseRequested,
         this, [this](int index) {
-            if (index > 0) {
-                m_tabWidget->removeTab(index);
-            }
+            m_tabWidget->removeTab(index);
+            updateTabVisibility();
         });
 
     connect(m_screenerPanel, &ScreenerPanel::screenRequested,
@@ -192,6 +214,8 @@ void MainWindow::onResultsReady(
                 this, &MainWindow::onHiddenColumnsChanged);
         }
     }
+
+    updateTabVisibility();
 }
 
 void MainWindow::onError(const QString& message) {
@@ -231,6 +255,13 @@ void MainWindow::onDteRangeExtended(int minDays, int maxDays) {
     if (minDays >= m_fetchedMinDay && maxDays <= m_fetchedMaxDay)
         return;
     fetchMarketStatus(minDays, maxDays);
+}
+
+void MainWindow::updateTabVisibility() {
+    if (m_tabWidget->count() > 0)
+        m_stack->setCurrentWidget(m_tabWidget);
+    else
+        m_stack->setCurrentWidget(m_welcomeLabel);
 }
 
 void MainWindow::fetchMarketStatus(int minDays, int maxDays) {

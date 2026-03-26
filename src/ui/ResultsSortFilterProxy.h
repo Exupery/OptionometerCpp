@@ -14,6 +14,10 @@ public:
     void setHiddenColumns(const QSet<int>& columns);
     QSet<int> hiddenColumns() const { return m_hiddenColumns; }
 
+    QVariant headerData(
+        int section, Qt::Orientation orientation,
+        int role = Qt::DisplayRole) const override;
+
 protected:
     bool lessThan(
         const QModelIndex& left,

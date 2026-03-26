@@ -101,6 +101,6 @@ void ResultsTab::sortByDefaultColumn() {
     auto names = m_model->columnNames();
     int annualizedCol = names.indexOf("Annualized");
     if (annualizedCol >= 0) {
-        m_proxy->sort(annualizedCol, Qt::DescendingOrder);
+        m_proxy->sortByColumn(annualizedCol);
     }
 }

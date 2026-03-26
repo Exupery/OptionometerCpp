@@ -15,6 +15,46 @@ void ResultsSortFilterProxy::sortByColumn(int column) {
     }
     m_lastSortColumn = column;
     sort(column, m_currentOrder);
+    emit headerDataChanged(Qt::Horizontal, 0, columnCount() - 1);
+}
+
+QVariant ResultsSortFilterProxy::headerData(
+    int section, Qt::Orientation orientation, int role) const
+{
+    if (orientation == Qt::Horizontal
+        && role == Qt::DisplayRole
+        && m_lastSortColumn >= 0) {
+        // Map proxy section to source column, accounting for
+        // hidden columns
+        int sourceCol = -1;
+        if (rowCount() > 0) {
+            sourceCol = mapToSource(index(0, section)).column();
+        } else {
+            // No rows: count visible source columns to find
+            // which source column this section maps to
+            int visible = 0;
+            for (int i = 0;
+                 i < sourceModel()->columnCount(); ++i) {
+                if (!m_hiddenColumns.contains(i)) {
+                    if (visible == section) {
+                        sourceCol = i;
+                        break;
+                    }
+                    ++visible;
+                }
+            }
+        }
+        if (sourceCol == m_lastSortColumn) {
+            QString name = sourceModel()->headerData(
+                sourceCol, orientation, role).toString();
+            name += (m_currentOrder == Qt::AscendingOrder)
+                ? QStringLiteral(" \u25B2")
+                : QStringLiteral(" \u25BC");
+            return name;
+        }
+    }
+    return QSortFilterProxyModel::headerData(
+        section, orientation, role);
 }
 
 void ResultsSortFilterProxy::setHiddenColumns(
