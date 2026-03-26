@@ -13,9 +13,17 @@ void ColorDelegate::paint(
     QStyleOptionViewItem opt = option;
     initStyleOption(&opt, index);
 
-    QVariant fg = index.data(Qt::ForegroundRole);
-    if (fg.isValid() && fg.canConvert<QColor>()) {
-        opt.palette.setColor(QPalette::Text, fg.value<QColor>());
+    bool selected = opt.state & QStyle::State_Selected;
+
+    if (selected) {
+        opt.palette.setColor(QPalette::HighlightedText, Qt::white);
+        opt.font.setBold(true);
+    } else {
+        QVariant fg = index.data(Qt::ForegroundRole);
+        if (fg.isValid() && fg.canConvert<QColor>()) {
+            opt.palette.setColor(
+                QPalette::Text, fg.value<QColor>());
+        }
     }
 
     QStyledItemDelegate::paint(painter, opt, index);

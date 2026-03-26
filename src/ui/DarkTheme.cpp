@@ -20,8 +20,8 @@ void apply(QApplication* app) {
     p.setColor(QPalette::ButtonText, QColor(212, 212, 212));
     p.setColor(QPalette::BrightText, Qt::red);
     p.setColor(QPalette::Link, QColor(42, 130, 218));
-    p.setColor(QPalette::Highlight, QColor(42, 130, 218));
-    p.setColor(QPalette::HighlightedText, Qt::black);
+    p.setColor(QPalette::Highlight, QColor(0, 60, 204));
+    p.setColor(QPalette::HighlightedText, Qt::white);
     p.setColor(QPalette::Disabled, QPalette::Text,
         QColor(128, 128, 128));
     p.setColor(QPalette::Disabled, QPalette::ButtonText,
@@ -55,7 +55,8 @@ void apply(QApplication* app) {
         }
         QTableView {
             gridline-color: #3f3f46;
-            selection-background-color: #264f78;
+            selection-background-color: #003CCC;
+            selection-color: white;
         }
         QPushButton {
             padding: 6px 20px;
