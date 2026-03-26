@@ -1,5 +1,6 @@
 #include "MainWindow.h"
 #include "ResultsTab.h"
+#include "ChartWindow.h"
 #include <QAbstractSpinBox>
 #include <QApplication>
 #include <QCloseEvent>
@@ -100,9 +101,23 @@ void MainWindow::setupConnections() {
 
     connect(m_tabWidget, &QTabWidget::tabCloseRequested,
         this, [this](int index) {
+            auto* tab = qobject_cast<ResultsTab*>(
+                m_tabWidget->widget(index));
+            if (tab) {
+                // Delete all chart windows for this tab
+                auto it = m_chartWindows.find(tab);
+                if (it != m_chartWindows.end()) {
+                    for (auto* w : it.value())
+                        w->deleteLater();
+                    m_chartWindows.erase(it);
+                }
+            }
             m_tabWidget->removeTab(index);
             updateTabVisibility();
         });
+
+    connect(m_tabWidget, &QTabWidget::currentChanged,
+        this, &MainWindow::onTabChanged);
 
     connect(m_screenerPanel, &ScreenerPanel::screenRequested,
         this, &MainWindow::onScreenRequested);
@@ -195,8 +210,7 @@ void MainWindow::onResultsReady(
                     .toString(Qt::ISODate));
             m_tabWidget->setCurrentIndex(idx);
 
-            connect(tab, &ResultsTab::hiddenColumnsChanged,
-                this, &MainWindow::onHiddenColumnsChanged);
+            connectResultsTab(tab, ticker);
         }
     } else if (auto* bps = std::get_if<
             std::vector<std::vector<ScoredBullPut>>>(&result)) {
@@ -216,8 +230,7 @@ void MainWindow::onResultsReady(
                     .toString(Qt::ISODate));
             m_tabWidget->setCurrentIndex(idx);
 
-            connect(tab, &ResultsTab::hiddenColumnsChanged,
-                this, &MainWindow::onHiddenColumnsChanged);
+            connectResultsTab(tab, ticker);
         }
     }
 
@@ -268,6 +281,66 @@ void MainWindow::updateTabVisibility() {
         m_stack->setCurrentWidget(m_tabWidget);
     else
         m_stack->setCurrentWidget(m_welcomeLabel);
+}
+
+void MainWindow::connectResultsTab(
+    ResultsTab* tab, const QString& ticker)
+{
+    tab->setTicker(ticker);
+
+    connect(tab, &ResultsTab::hiddenColumnsChanged,
+        this, &MainWindow::onHiddenColumnsChanged);
+
+    connect(tab, &ResultsTab::chartRequested, this,
+        [this, tab](int sourceRow, PlChartWidget::Data data,
+                    QString title) {
+            onChartRequested(tab, sourceRow, data, title);
+        });
+}
+
+void MainWindow::onChartRequested(
+    ResultsTab* tab, int sourceRow,
+    const PlChartWidget::Data& data, const QString& title)
+{
+    // Check if window already open for this row
+    auto& tabWindows = m_chartWindows[tab];
+    if (tabWindows.contains(sourceRow)) {
+        tabWindows[sourceRow]->raise();
+        return;
+    }
+
+    // Create chart window as child of the stack widget
+    QSize savedSize(m_settings.chartWidth, m_settings.chartHeight);
+    auto* chartWin = new ChartWindow(title, data, m_stack,
+                                     savedSize);
+
+    tabWindows[sourceRow] = chartWin;
+
+    connect(chartWin, &ChartWindow::closed, this,
+        [this, tab, sourceRow]() {
+            m_chartWindows[tab].remove(sourceRow);
+        });
+
+    connect(chartWin, &ChartWindow::sizeChanged, this,
+        [this](const QSize& sz) {
+            m_settings.chartWidth = sz.width();
+            m_settings.chartHeight = sz.height();
+            m_settingsManager.save(m_settings);
+        });
+}
+
+void MainWindow::onTabChanged(int index) {
+    // Hide all chart windows, then show ones for current tab
+    for (auto it = m_chartWindows.begin();
+         it != m_chartWindows.end(); ++it)
+    {
+        bool isCurrent =
+            (m_tabWidget->widget(index) == it.key());
+        for (auto* w : it.value()) {
+            w->setVisible(isCurrent);
+            if (isCurrent) w->raise();
+        }
+    }
 }
 
 void MainWindow::fetchMarketStatus(int minDays, int maxDays) {

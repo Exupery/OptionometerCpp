@@ -71,6 +71,8 @@ nlohmann::json SettingsManager::toJson(const AppSettings& s) {
         cols.push_back(col.toStdString());
     }
     j["hiddenColumns"] = cols;
+    j["chartWidth"] = s.chartWidth;
+    j["chartHeight"] = s.chartHeight;
     return j;
 }
 
@@ -120,5 +122,7 @@ AppSettings SettingsManager::fromJson(const nlohmann::json& j) {
                 QString::fromStdString(col.get<std::string>()));
         }
     }
+    s.chartWidth = intVal("chartWidth", 0);
+    s.chartHeight = intVal("chartHeight", 0);
     return s;
 }

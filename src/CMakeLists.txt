@@ -7,6 +7,7 @@ set(LIB_SOURCES
     core/BullPutScorer.cpp
     core/Normalizer.cpp
     core/Weigher.cpp
+    core/BlackScholes.cpp
     services/MarketDataImporter.cpp
     services/ScreenerService.cpp
     services/SettingsManager.cpp
@@ -18,6 +19,8 @@ set(LIB_SOURCES
     ui/ResultsSortFilterProxy.cpp
     ui/ColorDelegate.cpp
     ui/DteCalendar.cpp
+    ui/PlChartWidget.cpp
+    ui/ChartWindow.cpp
     ui/SettingsDialog.cpp
     workers/ScreenerWorker.cpp
 )
@@ -36,6 +39,7 @@ set(LIB_HEADERS
     core/BullPutScorer.h
     core/Normalizer.h
     core/Weigher.h
+    core/BlackScholes.h
     services/MarketDataImporter.h
     services/ScreenerService.h
     services/SettingsManager.h
@@ -47,6 +51,8 @@ set(LIB_HEADERS
     ui/ResultsSortFilterProxy.h
     ui/ColorDelegate.h
     ui/DteCalendar.h
+    ui/PlChartWidget.h
+    ui/ChartWindow.h
     ui/SettingsDialog.h
     workers/ScreenerWorker.h
 )

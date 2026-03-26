@@ -1,5 +1,6 @@
 #include "ResultsTab.h"
 #include <QHeaderView>
+#include <QLocale>
 #include <QMenu>
 #include <QVBoxLayout>
 
@@ -42,6 +43,9 @@ void ResultsTab::setupUi() {
     connect(m_table->horizontalHeader(),
         &QHeaderView::customContextMenuRequested,
         this, [this](const QPoint& pos) { setupColumnMenu(); });
+
+    connect(m_table, &QTableView::doubleClicked,
+        this, &ResultsTab::onDoubleClicked);
 
     layout->addWidget(m_table);
 }
@@ -103,4 +107,27 @@ void ResultsTab::sortByDefaultColumn() {
     if (annualizedCol >= 0) {
         m_proxy->sortByColumn(annualizedCol);
     }
+}
+
+void ResultsTab::setTicker(const QString& ticker) {
+    m_ticker = ticker;
+}
+
+void ResultsTab::onDoubleClicked(
+    const QModelIndex& proxyIndex)
+{
+    auto sourceIndex = m_proxy->mapToSource(proxyIndex);
+    int sourceRow = sourceIndex.row();
+
+    auto data = m_model->chartDataForRow(sourceRow);
+    if (!data.trade) return;
+    data.ticker = m_ticker.toUpper();
+
+    QLocale locale(QLocale::English);
+    QString title = QString("%1 %2 %3")
+        .arg(m_ticker.toUpper(),
+             locale.toString(data.underlyingPrice, 'f', 2),
+             m_model->tradeStringForRow(sourceRow));
+
+    emit chartRequested(sourceRow, data, title);
 }

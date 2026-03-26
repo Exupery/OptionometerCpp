@@ -208,3 +208,46 @@ QColor ResultsTableModel::colorForValue(double value) const {
     if (value < -0.01) return QColor(244, 67, 54);
     return QColor(255, 235, 59);
 }
+
+PlChartWidget::Data ResultsTableModel::chartDataForRow(
+    int row) const
+{
+    PlChartWidget::Data d;
+    if (m_isBullPut) {
+        if (row < 0
+            || row >= static_cast<int>(m_bullPuts.size()))
+            return d;
+        const auto& t = m_bullPuts[row];
+        d.underlyingPrice = t.sdPrices.underlyingPrice;
+        d.standardDeviation = t.sdPrices.standardDeviation;
+        d.trade = t.trade;
+        d.plMultiplier = t.numContracts * 100.0;
+        if (t.trade && !t.trade->getSells().empty())
+            d.dte = t.trade->getSells().front().dte;
+    } else {
+        if (row < 0
+            || row >= static_cast<int>(m_trades.size()))
+            return d;
+        const auto& t = m_trades[row];
+        d.underlyingPrice = t.sdPrices.underlyingPrice;
+        d.standardDeviation = t.sdPrices.standardDeviation;
+        d.trade = t.trade;
+        if (t.trade && !t.trade->getSells().empty())
+            d.dte = t.trade->getSells().front().dte;
+    }
+    return d;
+}
+
+QString ResultsTableModel::tradeStringForRow(int row) const {
+    if (m_isBullPut) {
+        if (row < 0
+            || row >= static_cast<int>(m_bullPuts.size()))
+            return {};
+        return m_bullPuts[row].trade
+            ? m_bullPuts[row].trade->toString() : QString();
+    }
+    if (row < 0 || row >= static_cast<int>(m_trades.size()))
+        return {};
+    return m_trades[row].trade
+        ? m_trades[row].trade->toString() : QString();
+}

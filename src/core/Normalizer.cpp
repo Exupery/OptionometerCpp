@@ -132,6 +132,7 @@ std::vector<ScoredBullPut> normalizeBullPuts(
         sb.successProbability = raw.score.probability;
         sb.maxProfitLoss = raw.maxProfitLoss;
         sb.annualizedReturn = raw.score.annualizedReturn;
+        sb.sdPrices = raw.sdPrices;
         sb.numContracts = raw.numContracts;
         sb.trade = raw.trade;
         result.push_back(std::move(sb));

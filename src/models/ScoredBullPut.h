@@ -16,6 +16,7 @@ struct ScoredBullPut {
     int score = 0;
     double successProbability = 0.0;
     MaxProfitLoss maxProfitLoss;
+    StandardDeviationPrices sdPrices;
     double annualizedReturn = 0.0;
     int numContracts = 0;
     std::shared_ptr<Trade> trade;

@@ -10,6 +10,7 @@ add_executable(OptionometerTests
     TestMathUtils.cpp
     TestSettingsManager.cpp
     TestMarketDataImporter.cpp
+    TestBlackScholes.cpp
 )
 
 target_link_libraries(OptionometerTests PRIVATE

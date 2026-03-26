@@ -35,6 +35,10 @@ struct AppSettings {
 
     // Column visibility
     QStringList hiddenColumns;
+
+    // Chart window geometry
+    int chartWidth = 0;
+    int chartHeight = 0;
 };
 
 class SettingsManager {

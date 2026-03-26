@@ -38,4 +38,10 @@ TEST_F(SettingsManagerTest, ApiTokenDefault) {
     EXPECT_TRUE(s.apiToken.isEmpty());
 }
 
+TEST_F(SettingsManagerTest, ChartSizeDefaults) {
+    AppSettings s;
+    EXPECT_EQ(s.chartWidth, 0);
+    EXPECT_EQ(s.chartHeight, 0);
+}
+
 } // namespace

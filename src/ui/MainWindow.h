@@ -2,6 +2,7 @@
 
 #include "ScreenerPanel.h"
 #include "SettingsDialog.h"
+#include "PlChartWidget.h"
 #include "services/SettingsManager.h"
 #include "services/ScreenerService.h"
 #include "workers/ScreenerWorker.h"
@@ -12,6 +13,10 @@
 #include <QNetworkAccessManager>
 #include <QSet>
 #include <QDate>
+#include <QMap>
+
+class ChartWindow;
+class ResultsTab;
 
 class MainWindow : public QMainWindow {
     Q_OBJECT
@@ -37,6 +42,11 @@ private:
     void onDteRangeExtended(int minDays, int maxDays);
 
     void updateTabVisibility();
+    void onChartRequested(ResultsTab* tab, int sourceRow,
+                          const PlChartWidget::Data& data,
+                          const QString& title);
+    void onTabChanged(int index);
+    void connectResultsTab(ResultsTab* tab, const QString& ticker);
 
     SettingsManager m_settingsManager;
     AppSettings m_settings;
@@ -50,4 +60,7 @@ private:
     QSet<QDate> m_closedDates;
     int m_fetchedMinDay = 0;
     int m_fetchedMaxDay = 0;
+
+    // Chart windows: tab -> (sourceRow -> ChartWindow*)
+    QMap<ResultsTab*, QMap<int, ChartWindow*>> m_chartWindows;
 };

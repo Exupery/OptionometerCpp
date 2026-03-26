@@ -2,6 +2,7 @@
 
 #include "models/ScoredTrade.h"
 #include "models/ScoredBullPut.h"
+#include "PlChartWidget.h"
 #include <QAbstractTableModel>
 #include <QStringList>
 #include <variant>
@@ -30,6 +31,9 @@ public:
 
     bool isNumericColumn(int column) const;
     QStringList columnNames() const;
+
+    PlChartWidget::Data chartDataForRow(int row) const;
+    QString tradeStringForRow(int row) const;
 
 private:
     QVariant tradeData(int row, int col, int role) const;
