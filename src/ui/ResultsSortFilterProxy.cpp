@@ -71,9 +71,13 @@ bool ResultsSortFilterProxy::lessThan(
     QVariant leftData = sourceModel()->data(left, Qt::UserRole);
     QVariant rightData = sourceModel()->data(right, Qt::UserRole);
 
-    if (leftData.canConvert<double>()
-        && rightData.canConvert<double>()) {
+    if (leftData.typeId() == QMetaType::Double
+        && rightData.typeId() == QMetaType::Double) {
         return leftData.toDouble() < rightData.toDouble();
+    }
+    if (leftData.typeId() == QMetaType::Int
+        && rightData.typeId() == QMetaType::Int) {
+        return leftData.toInt() < rightData.toInt();
     }
     return leftData.toString() < rightData.toString();
 }
