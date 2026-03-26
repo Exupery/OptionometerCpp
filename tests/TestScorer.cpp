@@ -71,6 +71,29 @@ TEST_F(ScorerTest, BullPutScorerAcceptsValidSpread) {
     SUCCEED();
 }
 
+TEST_F(ScorerTest, BullPutMaxProfitLossInDollars) {
+    // Very low thresholds so the trade isn't filtered out
+    BullPutScorer scorer(0.01, 0.001, 0.001, 50000);
+    // 95/100 bull put spread: sell 100 put, buy 95 put
+    auto buy = makeOption(
+        Side::Put, 95, 0.5, 1.0, 0.25, -0.2, 30);
+    auto sell = makeOption(
+        Side::Put, 100, 2.0, 2.5, 0.25, -0.35, 30);
+    auto trade = std::make_shared<Trade>(
+        std::vector<Option>{buy},
+        std::vector<Option>{sell});
+    auto results = scorer.score({trade}, 105.0);
+    if (results.empty()) { SUCCEED(); return; }
+    const auto& r = results.front();
+    // Per-share: credit = 2.0 - 1.0 = 1.0, maxLoss = 5 - 1 = 4.0
+    // numContracts = 50000 / (4.0 * 100) = 125
+    // Total maxProfit = 1.0 * 125 * 100 = 12500
+    // Total maxLoss = -4.0 * 125 * 100 = -50000
+    EXPECT_EQ(r.numContracts, 125);
+    EXPECT_NEAR(r.maxProfitLoss.maxProfit, 12500.0, 1.0);
+    EXPECT_NEAR(r.maxProfitLoss.maxLoss, -50000.0, 1.0);
+}
+
 TEST_F(ScorerTest, StandardDeviationPricesCalc) {
     StandardDeviationPrices sdp(100.0, 10.0);
     EXPECT_NEAR(sdp.upperSd, 120.0, 0.01);

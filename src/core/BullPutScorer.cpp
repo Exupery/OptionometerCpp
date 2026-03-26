@@ -99,9 +99,9 @@ RawScoredBullPut* BullPutScorer::scoreSingle(
     tradePl.maxProfitToMaxLossRatio =
         perSpreadPl.maxProfitToMaxLossRatio;
     tradePl.numMaxProfit = perSpreadPl.numMaxProfit;
-    tradePl.maxProfit = perSpreadPl.maxProfit * numContracts;
+    tradePl.maxProfit = perSpreadPl.maxProfit * numContracts * 100.0;
     tradePl.numMaxLoss = perSpreadPl.numMaxLoss;
-    tradePl.maxLoss = perSpreadPl.maxLoss * numContracts;
+    tradePl.maxLoss = perSpreadPl.maxLoss * numContracts * 100.0;
     tradePl.score = perSpreadPl.score;
 
     double annualBullPut = bullPutAnnualReturn(
@@ -185,7 +185,7 @@ double BullPutScorer::bullPutAnnualReturn(
         * (probability / 100.0) * tradePl.maxProfit;
     double loss = tradesPerYear
         * ((100.0 - probability) / 100.0) * typicalLoss;
-    return ((profit + loss) * 100.0) / m_maxMargin * 100.0;
+    return (profit + loss) / m_maxMargin * 100.0;
 }
 
 std::vector<ScoredBullPut> BullPutScorer::normalize(

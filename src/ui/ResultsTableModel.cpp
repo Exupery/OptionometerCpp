@@ -1,5 +1,22 @@
 #include "ResultsTableModel.h"
 #include <QColor>
+#include <QLocale>
+
+namespace {
+
+QString formatDollar(double value) {
+    QLocale locale(QLocale::English);
+    long long rounded = qRound64(value);
+    if (rounded < 0)
+        return "-$" + locale.toString(-rounded);
+    return "$" + locale.toString(rounded);
+}
+
+QString formatPercent(double value) {
+    return QString::number(value, 'f', 2) + "%";
+}
+
+} // namespace
 
 ResultsTableModel::ResultsTableModel(QObject* parent)
     : QAbstractTableModel(parent)
@@ -49,6 +66,14 @@ QVariant ResultsTableModel::data(
     const QModelIndex& index, int role) const
 {
     if (!index.isValid()) return {};
+    if (role == Qt::TextAlignmentRole) {
+        bool isTradeCol = m_isBullPut
+            ? (index.column() == m_bullPutHeaders.size() - 1)
+            : (index.column() == m_tradeHeaders.size() - 1);
+        return isTradeCol
+            ? QVariant(Qt::AlignLeft | Qt::AlignVCenter)
+            : QVariant(Qt::AlignRight | Qt::AlignVCenter);
+    }
     return m_isBullPut
         ? bullPutData(index.row(), index.column(), role)
         : tradeData(index.row(), index.column(), role);
@@ -117,20 +142,18 @@ QVariant ResultsTableModel::tradeData(
     if (role != Qt::DisplayRole) return {};
     switch (col) {
     case 0: return t.score;
-    case 1: return QString::number(t.successProbability, 'f', 2);
-    case 2: return QString::number(t.annualizedReturn, 'f', 2);
+    case 1: return formatPercent(t.successProbability);
+    case 2: return formatPercent(t.annualizedReturn);
     case 3: return t.hundredTrades;
-    case 4: return QString::number(
-        t.maxProfitLoss.maxProfit, 'f', 2);
-    case 5: return QString::number(
-        t.maxProfitLoss.maxLoss, 'f', 2);
+    case 4: return formatDollar(t.maxProfitLoss.maxProfit);
+    case 5: return formatDollar(t.maxProfitLoss.maxLoss);
     case 6: return QString::number(
         t.maxProfitLoss.maxProfitToMaxLossRatio, 'f', 2);
-    case 7: return QString::number(t.sdPrices.lowerSd, 'f', 2);
-    case 8: return QString::number(t.sdPrices.upperSd, 'f', 2);
+    case 7: return formatDollar(t.sdPrices.lowerSd);
+    case 8: return formatDollar(t.sdPrices.upperSd);
     case 9: return QString::number(t.tradeDelta, 'f', 4);
     case 10: return t.trade
-        ? QString::number(t.trade->requiredMargin(), 'f', 2) : "";
+        ? formatDollar(t.trade->requiredMargin()) : "";
     case 11: return t.trade ? t.trade->toString() : "";
     default: return {};
     }
@@ -170,12 +193,10 @@ QVariant ResultsTableModel::bullPutData(
     if (role != Qt::DisplayRole) return {};
     switch (col) {
     case 0: return t.score;
-    case 1: return QString::number(t.successProbability, 'f', 2);
-    case 2: return QString::number(t.annualizedReturn, 'f', 2);
-    case 3: return QString::number(
-        t.maxProfitLoss.maxProfit, 'f', 2);
-    case 4: return QString::number(
-        t.maxProfitLoss.maxLoss, 'f', 2);
+    case 1: return formatPercent(t.successProbability);
+    case 2: return formatPercent(t.annualizedReturn);
+    case 3: return formatDollar(t.maxProfitLoss.maxProfit);
+    case 4: return formatDollar(t.maxProfitLoss.maxLoss);
     case 5: return t.numContracts;
     case 6: return t.trade ? t.trade->toString() : "";
     default: return {};
