@@ -42,8 +42,13 @@ TEST(NormalizerTest, NegativeScoresGetZero) {
 
 TEST(NormalizerTest, NegativeScoresKeptWhenNotIgnored) {
     std::vector<std::pair<int, double>> scores = {
-        {0, -5.0}, {1, 10.0}, {2, 20.0}
+        {0, -10.0}, {1, -5.0}, {2, 20.0}
     };
+    // With ignoreNegative=false, negative scores participate in ranking normally
     auto result = Normalizer::normalizeScores(scores, false);
-    EXPECT_GT(result[0], 0.0);
+    EXPECT_GT(result[1], 0.0);  // -5.0 is not lowest, so it gets a positive rank score
+
+    // With ignoreNegative=true, the same entry would be forced to 0
+    auto ignored = Normalizer::normalizeScores(scores, true);
+    EXPECT_NEAR(ignored[1], 0.0, 0.01);
 }
