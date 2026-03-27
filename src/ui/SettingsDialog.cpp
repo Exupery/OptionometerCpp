@@ -142,6 +142,14 @@ void SettingsDialog::setupUi(const AppSettings& settings) {
         settings.minNakedPutStrikeBelow);
     npForm->addRow("Min Strike Below:", m_minNakedPutStrikeBelow);
 
+    m_nakedPutMaxLossProbability = new QSpinBox(this);
+    m_nakedPutMaxLossProbability->setRange(1, 100);
+    m_nakedPutMaxLossProbability->setSuffix("%");
+    m_nakedPutMaxLossProbability->setValue(
+        settings.nakedPutMaxLossProbability);
+    npForm->addRow("Max Loss Probability:",
+        m_nakedPutMaxLossProbability);
+
     layout->addWidget(npGroup);
     layout->addStretch();
 
@@ -176,5 +184,7 @@ AppSettings SettingsDialog::getSettings() const {
     s.targetSellStrike = m_targetSellStrike->value();
     s.maxNakedPutMargin = m_maxNakedPutMargin->value();
     s.minNakedPutStrikeBelow = m_minNakedPutStrikeBelow->value();
+    s.nakedPutMaxLossProbability =
+        m_nakedPutMaxLossProbability->value();
     return s;
 }

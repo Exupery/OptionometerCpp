@@ -91,6 +91,71 @@ TEST(MathUtilsTest, LognormalCdfShortDated) {
     EXPECT_NEAR(cdf, 0.5, 0.02);
 }
 
+// Inverse normal CDF tests
+
+TEST(MathUtilsTest, NormalInverseCdfAtHalf) {
+    EXPECT_NEAR(MathUtils::normalInverseCdf(0.5), 0.0, 1e-8);
+}
+
+TEST(MathUtilsTest, NormalInverseCdfAt84Pct) {
+    // normalCdf(1.0) ≈ 0.8413
+    EXPECT_NEAR(MathUtils::normalInverseCdf(0.8413), 1.0, 0.001);
+}
+
+TEST(MathUtilsTest, NormalInverseCdfAt16Pct) {
+    // normalCdf(-1.0) ≈ 0.1587
+    EXPECT_NEAR(MathUtils::normalInverseCdf(0.1587), -1.0, 0.001);
+}
+
+TEST(MathUtilsTest, NormalInverseCdfAt5Pct) {
+    // normalCdf(-1.6449) ≈ 0.05
+    EXPECT_NEAR(MathUtils::normalInverseCdf(0.05), -1.6449, 0.001);
+}
+
+TEST(MathUtilsTest, NormalInverseCdfRoundTrip) {
+    for (double x : {-2.5, -1.0, 0.0, 0.5, 1.5, 2.0}) {
+        double p = MathUtils::normalCdf(x);
+        EXPECT_NEAR(MathUtils::normalInverseCdf(p), x, 1e-6);
+    }
+}
+
+// Inverse lognormal CDF tests
+
+TEST(MathUtilsTest, LognormalInverseCdfRoundTrip) {
+    double S = 100.0, sigmaRootT = 0.25, T = 1.0, r = 0.05;
+    for (double p : {0.05, 0.10, 0.25, 0.50, 0.75, 0.95}) {
+        double price = MathUtils::lognormalInverseCdf(
+            p, S, sigmaRootT, T, r);
+        double recoveredP = MathUtils::lognormalCdf(
+            price, S, sigmaRootT, T, r);
+        EXPECT_NEAR(recoveredP, p, 1e-6);
+    }
+}
+
+TEST(MathUtilsTest, LognormalInverseCdfMedian) {
+    // Median of lognormal with positive drift should be above spot
+    double S = 100.0, sigmaRootT = 0.25, T = 1.0, r = 0.05;
+    double median = MathUtils::lognormalInverseCdf(
+        0.5, S, sigmaRootT, T, r);
+    EXPECT_GT(median, S);
+}
+
+TEST(MathUtilsTest, LognormalInverseCdfShortDated) {
+    double S = 500.0;
+    double sigmaRootT = 0.25 * std::sqrt(30.0 / 365.0);
+    double T = 30.0 / 365.0;
+    // 5th percentile should be well below current price
+    double p5 = MathUtils::lognormalInverseCdf(0.05, S, sigmaRootT, T);
+    EXPECT_LT(p5, S);
+    EXPECT_GT(p5, 0.0);
+    // Verify round-trip
+    EXPECT_NEAR(MathUtils::lognormalCdf(p5, S, sigmaRootT, T), 0.05, 1e-6);
+}
+
+TEST(MathUtilsTest, LognormalInverseCdfBoundary) {
+    EXPECT_NEAR(MathUtils::lognormalInverseCdf(0.0, 100.0, 0.25, 1.0), 0.0, 1e-10);
+}
+
 TEST(MathUtilsTest, LognormalProbabilityAsymmetry) {
     // Lognormal should have right skew: P(S > S0) slightly > P(S < S0)
     // when drift is positive

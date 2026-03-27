@@ -37,6 +37,7 @@ struct AppSettings {
     // Naked Put Settings
     int maxNakedPutMargin = 25000;
     int minNakedPutStrikeBelow = 5;
+    int nakedPutMaxLossProbability = 5;
 
     // Column visibility
     QStringList hiddenColumns;

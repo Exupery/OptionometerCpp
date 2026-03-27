@@ -239,6 +239,7 @@ ScreenerParams ScreenerPanel::currentParams(
     p.targetSellStrike = settings.targetSellStrike;
     p.maxNakedPutMargin = settings.maxNakedPutMargin;
     p.minNakedPutStrikeBelow = settings.minNakedPutStrikeBelow;
+    p.nakedPutMaxLossProbability = settings.nakedPutMaxLossProbability;
     p.apiToken = settings.apiToken;
     return p;
 }

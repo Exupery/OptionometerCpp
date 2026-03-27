@@ -35,4 +35,5 @@ private:
     QSpinBox* m_targetSellStrike;
     QSpinBox* m_maxNakedPutMargin;
     QSpinBox* m_minNakedPutStrikeBelow;
+    QSpinBox* m_nakedPutMaxLossProbability;
 };

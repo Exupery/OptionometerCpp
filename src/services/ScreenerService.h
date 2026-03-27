@@ -32,6 +32,7 @@ struct ScreenerParams {
     int targetSellStrike = 0;
     int maxNakedPutMargin = 25000;
     int minNakedPutStrikeBelow = 5;
+    int nakedPutMaxLossProbability = 5;
     QString apiToken;
 };
 

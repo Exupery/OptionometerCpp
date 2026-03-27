@@ -10,5 +10,9 @@ double lognormalProbability(double underlyingPrice, double sigmaRootT,
 double lognormalCdf(double price, double underlyingPrice,
                     double sigmaRootT, double T,
                     double riskFreeRate = 0.05);
+double normalInverseCdf(double p);
+double lognormalInverseCdf(double p, double underlyingPrice,
+                           double sigmaRootT, double T,
+                           double riskFreeRate = 0.05);
 
 } // namespace MathUtils

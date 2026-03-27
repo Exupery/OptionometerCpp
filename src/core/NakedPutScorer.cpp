@@ -1,4 +1,5 @@
 #include "NakedPutScorer.h"
+#include "MathUtils.h"
 #include "Normalizer.h"
 #include "services/MarketDataImporter.h"
 #include <QDate>
@@ -11,10 +12,11 @@ static int s_scoreSingleLogCount = 0;
 NakedPutScorer::NakedPutScorer(
     double minProbability, double minProfitAmount,
     double minAnnualReturn, int maxMargin,
-    const Weigher& weigher)
+    const Weigher& weigher, int maxLossProbability)
     : Scorer(minProbability, minProfitAmount, minAnnualReturn)
     , m_maxMargin(maxMargin)
     , m_weigher(weigher)
+    , m_maxLossProb(maxLossProbability / 100.0)
 {}
 
 std::vector<ScoredBullPut> NakedPutScorer::score(
@@ -116,8 +118,11 @@ RawScoredBullPut* NakedPutScorer::scoreSingle(
         return nullptr;
     }
 
+    double sigmaRootT = sd / underlyingPrice;
+    double T = static_cast<double>(sellOpt.dte) / 365.0;
+
     auto perContractPl = calcNakedPutMaxProfitLoss(
-        *trade, prob, plByPrice, underlyingPrice);
+        *trade, prob, plByPrice, underlyingPrice, sigmaRootT, T);
 
     MaxProfitLoss tradePl;
     tradePl.maxProfitToMaxLossRatio =
@@ -129,7 +134,8 @@ RawScoredBullPut* NakedPutScorer::scoreSingle(
     tradePl.score = perContractPl.score;
 
     double annualReturn = nakedPutAnnualReturn(
-        *trade, tradePl, prob, numContracts, marginPerContract);
+        *trade, tradePl, prob, numContracts, marginPerContract,
+        underlyingPrice, sigmaRootT, T);
     if (annualReturn < m_minAnnualReturn) {
         if (shouldLog) {
             ++s_scoreSingleLogCount;
@@ -182,18 +188,16 @@ int NakedPutScorer::weekdaysInDte(int dte) {
 MaxProfitLoss NakedPutScorer::calcNakedPutMaxProfitLoss(
     const Trade& trade, double probability,
     const std::map<int, double>& plByPrice,
-    double underlyingPrice) const
+    double underlyingPrice,
+    double sigmaRootT, double T) const
 {
     const auto& sellPut = trade.getSells().front();
     double credit = sellPut.bid;
 
-    // Max loss assumes a declining daily drop in the underlying:
-    // day 1: -2%, days 2-5: -1.5% each, remaining days: -1% each
-    int weekdays = weekdaysInDte(sellPut.dte);
-    double dropPct = 0.02;
-    if (weekdays > 1) dropPct += std::min(weekdays - 1, 4) * 0.015;
-    if (weekdays > 5) dropPct += (weekdays - 5) * 0.01;
-    double worstPrice = underlyingPrice * (1.0 - dropPct);
+    // Max loss at the configured probability price (VaR approach):
+    // the price the underlying has only that % chance of falling to
+    double worstPrice = MathUtils::lognormalInverseCdf(
+        m_maxLossProb, underlyingPrice, sigmaRootT, T);
     // Ensure worst price is always below the strike so max loss
     // is never zero — even high-probability trades can lose
     worstPrice = std::min(worstPrice, sellPut.strike - 1.0);
@@ -218,14 +222,27 @@ MaxProfitLoss NakedPutScorer::calcNakedPutMaxProfitLoss(
 double NakedPutScorer::nakedPutAnnualReturn(
     const Trade& trade, const MaxProfitLoss& tradePl,
     double probability, int numContracts,
-    double marginPerContract) const
+    double marginPerContract,
+    double underlyingPrice,
+    double sigmaRootT, double T) const
 {
     const auto& sellPut = trade.getSells().front();
-    // Use margin per contract as realistic loss basis, capped at max
-    // loss so typical never exceeds the worst-case scenario
+    double credit = sellPut.bid;
+    double breakevenPrice = sellPut.strike - credit;
+
+    // Typical loss at a probability halfway between the max loss
+    // probability and the breakeven probability
+    double breakevenProb = MathUtils::lognormalCdf(
+        breakevenPrice, underlyingPrice, sigmaRootT, T);
+    double typicalLossProb = (breakevenProb + m_maxLossProb) / 2.0;
+    double typicalLossPrice = MathUtils::lognormalInverseCdf(
+        typicalLossProb, underlyingPrice, sigmaRootT, T);
+    double typicalLossPerShare = std::max(0.0,
+        sellPut.strike - typicalLossPrice) - credit;
     double typicalLoss = std::max(
-        -marginPerContract * numContracts * 0.05,
+        -typicalLossPerShare * numContracts * 100.0,
         tradePl.maxLoss);
+
     int tradesPerYear = std::max(
         365 / std::max(sellPut.dte, 7), 1);
     double profit = tradesPerYear

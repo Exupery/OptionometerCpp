@@ -68,6 +68,7 @@ nlohmann::json SettingsManager::toJson(const AppSettings& s) {
     j["targetSellStrike"] = s.targetSellStrike;
     j["maxNakedPutMargin"] = s.maxNakedPutMargin;
     j["minNakedPutStrikeBelow"] = s.minNakedPutStrikeBelow;
+    j["nakedPutMaxLossProbability"] = s.nakedPutMaxLossProbability;
 
     nlohmann::json cols = nlohmann::json::array();
     for (const auto& col : s.hiddenColumns) {
@@ -121,6 +122,7 @@ AppSettings SettingsManager::fromJson(const nlohmann::json& j) {
     s.targetSellStrike = intVal("targetSellStrike", 0);
     s.maxNakedPutMargin = intVal("maxNakedPutMargin", 25000);
     s.minNakedPutStrikeBelow = intVal("minNakedPutStrikeBelow", 5);
+    s.nakedPutMaxLossProbability = intVal("nakedPutMaxLossProbability", 5);
 
     if (j.contains("hiddenColumns") && j["hiddenColumns"].is_array()) {
         for (const auto& col : j["hiddenColumns"]) {

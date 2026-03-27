@@ -172,7 +172,8 @@ ScreenerService::scoreNakedPuts(
         params.hundredTradeWeight);
     NakedPutScorer scorer(
         params.minProbability, params.minProfitAmount,
-        params.minAnnualReturn, params.maxNakedPutMargin, weigher);
+        params.minAnnualReturn, params.maxNakedPutMargin, weigher,
+        params.nakedPutMaxLossProbability);
 
     double underlyingPrice = chains.empty()
         ? 0.0 : chains.front().underlyingPrice;
