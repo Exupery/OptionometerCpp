@@ -79,7 +79,7 @@ RawScoredBullPut* BullPutScorer::scoreSingle(
     }
 
     double prob = successProbability(
-        plByPrice, underlyingPrice, sd);
+        plByPrice, underlyingPrice, sd, sellOpt.dte);
     if (prob < m_minProbability) {
         if (shouldLog) {
             ++s_scoreSingleLogCount;

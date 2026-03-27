@@ -417,9 +417,10 @@ void PlChartWidget::drawTooltip(QPainter& p,
         *m_data.trade, price, m_data.dte)
         * m_data.plMultiplier;
 
-    double z = (price - m_data.underlyingPrice)
-        / m_data.standardDeviation;
-    double probBelow = MathUtils::normalCdf(z) * 100.0;
+    double sigmaRootT = m_data.standardDeviation / m_data.underlyingPrice;
+    double T = static_cast<double>(m_data.dte) / 365.0;
+    double probBelow = MathUtils::lognormalCdf(
+        price, m_data.underlyingPrice, sigmaRootT, T) * 100.0;
     double probAbove = 100.0 - probBelow;
 
     QLocale locale(QLocale::English);

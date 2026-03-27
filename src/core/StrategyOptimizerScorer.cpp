@@ -42,13 +42,13 @@ RawScoredTrade* StrategyOptimizerScorer::scoreSingle(
     }
     if (!anyProfit) return nullptr;
 
-    double prob = successProbability(
-        plByPrice, underlyingPrice, sd);
-    if (prob < m_minProbability) return nullptr;
-
     int dte = trade->getSells().empty()
         ? trade->getBuys().front().dte
         : trade->getSells().front().dte;
+
+    double prob = successProbability(
+        plByPrice, underlyingPrice, sd, dte);
+    if (prob < m_minProbability) return nullptr;
     double annual = annualReturnScore(
         dte, prob, plByPrice, sdPrices, *trade);
     if (annual < m_minAnnualReturn) return nullptr;

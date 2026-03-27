@@ -20,7 +20,7 @@ protected:
 
     double successProbability(
         const std::map<int, double>& plByPrice,
-        double underlyingPrice, double sd) const;
+        double underlyingPrice, double sd, int dte) const;
 
     MaxProfitLoss calcMaxProfitLoss(
         const std::map<int, double>& plByPrice,

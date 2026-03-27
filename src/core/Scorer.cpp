@@ -20,7 +20,7 @@ double Scorer::calculateImpliedSd(
 
 double Scorer::successProbability(
     const std::map<int, double>& plByPrice,
-    double underlyingPrice, double sd) const
+    double underlyingPrice, double sd, int dte) const
 {
     std::vector<int> profitPrices;
     for (const auto& [price, pl] : plByPrice) {
@@ -29,11 +29,14 @@ double Scorer::successProbability(
         }
     }
 
+    double T = static_cast<double>(dte) / 365.0;
+    double sigmaRootT = sd / underlyingPrice;
+
     auto ranges = findProfitableRanges(profitPrices);
     double totalProb = 0.0;
     for (size_t i = 0; i + 1 < ranges.size(); i += 2) {
-        totalProb += MathUtils::normalProbability(
-            underlyingPrice, sd,
+        totalProb += MathUtils::lognormalProbability(
+            underlyingPrice, sigmaRootT, T,
             static_cast<double>(ranges[i]),
             static_cast<double>(ranges[i + 1])) * 100.0;
     }
