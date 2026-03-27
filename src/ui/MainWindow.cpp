@@ -125,6 +125,15 @@ void MainWindow::setupConnections() {
     connect(m_screenerPanel, &ScreenerPanel::dteRangeExtended,
         this, &MainWindow::onDteRangeExtended);
 
+    connect(m_screenerPanel, &ScreenerPanel::showDteHalfChanged,
+        this, [this](bool checked) {
+            m_settings.showDteHalf = checked;
+            m_settingsManager.save(m_settings);
+            for (auto& tabWindows : m_chartWindows)
+                for (auto* w : tabWindows)
+                    w->setShowDteHalf(checked);
+        });
+
     connect(m_worker, &ScreenerWorker::resultsReady,
         this, &MainWindow::onResultsReady,
         Qt::QueuedConnection);
@@ -313,6 +322,7 @@ void MainWindow::onChartRequested(
     QSize savedSize(m_settings.chartWidth, m_settings.chartHeight);
     auto* chartWin = new ChartWindow(title, data, m_stack,
                                      savedSize);
+    chartWin->setShowDteHalf(m_settings.showDteHalf);
 
     tabWindows[sourceRow] = chartWin;
 

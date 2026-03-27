@@ -65,6 +65,10 @@ QSize ChartWindow::lastUsedSize() {
     return s_lastSize;
 }
 
+void ChartWindow::setShowDteHalf(bool show) {
+    m_chart->setShowDteHalf(show);
+}
+
 void ChartWindow::paintEvent(QPaintEvent*) {
     QPainter p(this);
     p.setRenderHint(QPainter::Antialiasing);

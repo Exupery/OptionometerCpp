@@ -16,6 +16,7 @@ struct AppSettings {
     int lastMinDays = 25;
     int lastMaxDays = 45;
     bool lastFridaysOnly = false;
+    bool showDteHalf = false;
 
     // Settings panel
     int maxStrikes = 20;

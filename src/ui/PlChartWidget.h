@@ -19,6 +19,7 @@ public:
     explicit PlChartWidget(QWidget* parent = nullptr);
 
     void setData(const Data& data);
+    void setShowDteHalf(bool show);
 
 protected:
     void paintEvent(QPaintEvent* event) override;
@@ -45,6 +46,7 @@ private:
     void drawShading(QPainter& p, const ChartMetrics& m);
     void drawPlLine(QPainter& p, const ChartMetrics& m);
     void drawCurrentPlLine(QPainter& p, const ChartMetrics& m);
+    void drawDteHalfPlLine(QPainter& p, const ChartMetrics& m);
     void drawBreakevenDots(QPainter& p, const ChartMetrics& m);
     void drawTooltip(QPainter& p, const ChartMetrics& m);
 
@@ -61,6 +63,7 @@ private:
 
     QPointF m_mousePos;
     bool m_mouseInChart = false;
+    bool m_showDteHalf = false;
 
     static constexpr int kLeftMargin = 80;
     static constexpr int kRightMargin = 20;
@@ -70,6 +73,7 @@ private:
     static const QColor kPositiveColor;
     static const QColor kNegativeColor;
     static const QColor kCurrentPlColor;
+    static const QColor kDteHalfPlColor;
     static const QColor kGridColor;
     static const QColor kBgColor;
 };

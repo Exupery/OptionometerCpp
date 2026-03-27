@@ -12,6 +12,7 @@
 const QColor PlChartWidget::kPositiveColor(0x00, 0xFF, 0x98);
 const QColor PlChartWidget::kNegativeColor(0xC4, 0x1E, 0x3A);
 const QColor PlChartWidget::kCurrentPlColor(0x00, 0x3C, 0xCC);
+const QColor PlChartWidget::kDteHalfPlColor(0xFF, 0xF4, 0x68);
 const QColor PlChartWidget::kGridColor(60, 60, 60);
 const QColor PlChartWidget::kBgColor(20, 20, 20);
 
@@ -26,6 +27,13 @@ void PlChartWidget::setData(const Data& data) {
     m_viewLeft = data.underlyingPrice * 0.9;
     m_viewRight = data.underlyingPrice * 1.1;
     update();
+}
+
+void PlChartWidget::setShowDteHalf(bool show) {
+    if (m_showDteHalf != show) {
+        m_showDteHalf = show;
+        update();
+    }
 }
 
 void PlChartWidget::clampView() {
@@ -67,6 +75,14 @@ PlChartWidget::ChartMetrics PlChartWidget::calcMetrics() const {
             * m_data.plMultiplier;
         double maxVal = std::max(pl, currentPl);
         double minVal = std::min(pl, currentPl);
+        if (m_showDteHalf && m_data.dte > 1) {
+            int halfDte = (m_data.dte + 1) / 2;
+            double halfPl = BlackScholes::currentPlAtPrice(
+                *m_data.trade, price, halfDte)
+                * m_data.plMultiplier;
+            maxVal = std::max(maxVal, halfPl);
+            minVal = std::min(minVal, halfPl);
+        }
         if (i == 0 || maxVal > yMax) yMax = maxVal;
         if (i == 0 || minVal < yMin) yMin = minVal;
     }
@@ -365,6 +381,46 @@ void PlChartWidget::drawCurrentPlLine(QPainter& p,
     }
 }
 
+void PlChartWidget::drawDteHalfPlLine(QPainter& p,
+    const ChartMetrics& m)
+{
+    if (!m_showDteHalf || !m_data.trade || m_data.dte <= 1)
+        return;
+
+    int halfDte = (m_data.dte + 1) / 2;
+
+    int pixelCount = static_cast<int>(m.chartWidth);
+    if (pixelCount <= 0) return;
+
+    QColor halfPlColor = kDteHalfPlColor;
+    halfPlColor.setAlpha(77);  // ~30% opacity
+    QPen pen(halfPlColor, 2);
+    p.setPen(pen);
+
+    double prevPx = m.chartLeft;
+    double prevPrice = priceAtX(prevPx, m);
+    double prevPl = BlackScholes::currentPlAtPrice(
+        *m_data.trade, prevPrice, halfDte)
+        * m_data.plMultiplier;
+    double prevY = yAtPl(prevPl, m);
+
+    for (int i = 1; i <= pixelCount; ++i) {
+        double px = m.chartLeft + i;
+        double price = priceAtX(px, m);
+        double pl = BlackScholes::currentPlAtPrice(
+            *m_data.trade, price, halfDte)
+            * m_data.plMultiplier;
+        double curY = yAtPl(pl, m);
+
+        p.drawLine(QPointF(prevPx, prevY),
+                   QPointF(px, curY));
+
+        prevPx = px;
+        prevPl = pl;
+        prevY = curY;
+    }
+}
+
 void PlChartWidget::drawBreakevenDots(QPainter& p,
     const ChartMetrics& m)
 {
@@ -435,6 +491,15 @@ void PlChartWidget::drawTooltip(QPainter& p,
         lines << QString("Cur P/L: %1")
             .arg(locale.toString(qRound64(currentPl)));
     }
+    if (m_showDteHalf && m_data.dte > 1) {
+        int halfDte = (m_data.dte + 1) / 2;
+        double halfPl = BlackScholes::currentPlAtPrice(
+            *m_data.trade, price, halfDte)
+            * m_data.plMultiplier;
+        lines << QString("%1 DTE P/L: %2")
+            .arg(halfDte)
+            .arg(locale.toString(qRound64(halfPl)));
+    }
     lines << QString("\u2190 %1%  \u00B7  %2% \u2192")
         .arg(QString::number(probBelow, 'f', 1),
              QString::number(probAbove, 'f', 1));
@@ -494,6 +559,7 @@ void PlChartWidget::paintEvent(QPaintEvent*) {
     drawShading(p, m);
     drawCurrentPriceLine(p, m);
     drawCurrentPlLine(p, m);
+    drawDteHalfPlLine(p, m);
     drawPlLine(p, m);
     drawBreakevenDots(p, m);
 

@@ -12,6 +12,7 @@ public:
                 const QSize& savedSize = QSize());
 
     static QSize lastUsedSize();
+    void setShowDteHalf(bool show);
 
 signals:
     void closed();

@@ -44,4 +44,9 @@ TEST_F(SettingsManagerTest, ChartSizeDefaults) {
     EXPECT_EQ(s.chartHeight, 0);
 }
 
+TEST_F(SettingsManagerTest, ShowDteHalfDefault) {
+    AppSettings s;
+    EXPECT_FALSE(s.showDteHalf);
+}
+
 } // namespace

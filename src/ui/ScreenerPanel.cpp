@@ -61,6 +61,9 @@ void ScreenerPanel::setupUi() {
     m_fridaysOnly = new QCheckBox("Fridays Only", this);
     form->addRow("", m_fridaysOnly);
 
+    m_showDteHalf = new QCheckBox("Show DTE/2", this);
+    form->addRow("", m_showDteHalf);
+
     layout->addLayout(form);
 
     // DTE range calendars
@@ -103,6 +106,9 @@ void ScreenerPanel::setupUi() {
         QOverload<int>::of(&QSpinBox::valueChanged),
         this, [this]() { updateCalendars(); });
 
+    connect(m_showDteHalf, &QCheckBox::toggled, this,
+        &ScreenerPanel::showDteHalfChanged);
+
     connect(m_screenButton, &QPushButton::clicked, this,
         [this]() {
             emit screenRequested({});
@@ -140,6 +146,7 @@ void ScreenerPanel::restoreFromSettings(
     m_minDays->setValue(settings.lastMinDays);
     m_maxDays->setValue(settings.lastMaxDays);
     m_fridaysOnly->setChecked(settings.lastFridaysOnly);
+    m_showDteHalf->setChecked(settings.showDteHalf);
     updateCalendars();
 }
 
@@ -151,6 +158,7 @@ void ScreenerPanel::saveToSettings(AppSettings& settings) const {
     settings.lastMinDays = m_minDays->value();
     settings.lastMaxDays = m_maxDays->value();
     settings.lastFridaysOnly = m_fridaysOnly->isChecked();
+    settings.showDteHalf = m_showDteHalf->isChecked();
 }
 
 void ScreenerPanel::setScreening(bool screening) {

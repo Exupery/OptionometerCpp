@@ -51,6 +51,7 @@ nlohmann::json SettingsManager::toJson(const AppSettings& s) {
     j["lastMinDays"] = s.lastMinDays;
     j["lastMaxDays"] = s.lastMaxDays;
     j["lastFridaysOnly"] = s.lastFridaysOnly;
+    j["showDteHalf"] = s.showDteHalf;
     j["maxStrikes"] = s.maxStrikes;
     j["commission"] = s.commission;
     j["minAnnualReturn"] = s.minAnnualReturn;
@@ -101,6 +102,7 @@ AppSettings SettingsManager::fromJson(const nlohmann::json& j) {
     s.lastMinDays = intVal("lastMinDays", 25);
     s.lastMaxDays = intVal("lastMaxDays", 45);
     s.lastFridaysOnly = boolVal("lastFridaysOnly", false);
+    s.showDteHalf = boolVal("showDteHalf", false);
     s.maxStrikes = intVal("maxStrikes", 20);
     s.commission = dblVal("commission", 0.5);
     s.minAnnualReturn = dblVal("minAnnualReturn", 1.0);

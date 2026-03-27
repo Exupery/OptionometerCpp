@@ -33,6 +33,7 @@ public:
 signals:
     void screenRequested(ScreenerParams params);
     void dteRangeExtended(int minDays, int maxDays);
+    void showDteHalfChanged(bool checked);
 
 private:
     void setupUi();
@@ -46,6 +47,7 @@ private:
     QSpinBox* m_minDays;
     QSpinBox* m_maxDays;
     QCheckBox* m_fridaysOnly;
+    QCheckBox* m_showDteHalf;
     QPushButton* m_screenButton;
     QLabel* m_rateLimitLabel;
     DteCalendar* m_calendarCurrent;

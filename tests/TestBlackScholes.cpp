@@ -109,6 +109,56 @@ TEST_F(BlackScholesTest, CurrentPlBullPutSpread) {
     EXPECT_LT(plLow, 0.0);
 }
 
+TEST_F(BlackScholesTest, HalfDteRoundingUp) {
+    // Half-DTE calculation: (dte + 1) / 2
+    // Even DTE: 10 -> 5
+    EXPECT_EQ((10 + 1) / 2, 5);
+    // Odd DTE: 5 -> 3
+    EXPECT_EQ((5 + 1) / 2, 3);
+    // Odd DTE: 7 -> 4
+    EXPECT_EQ((7 + 1) / 2, 4);
+    // Even DTE: 2 -> 1
+    EXPECT_EQ((2 + 1) / 2, 1);
+    // Odd DTE: 3 -> 2
+    EXPECT_EQ((3 + 1) / 2, 2);
+    // Odd DTE: 1 -> 1 (but DTE=1 is disabled, so not used)
+    EXPECT_EQ((1 + 1) / 2, 1);
+}
+
+TEST_F(BlackScholesTest, HalfDtePlBetweenCurrentAndExpiration) {
+    // Half-DTE P/L should fall between current P/L and expiration
+    // P/L in terms of time decay
+    Option sellPut;
+    sellPut.strike = 100;
+    sellPut.side = Side::Put;
+    sellPut.bid = 3.00;
+    sellPut.ask = 3.20;
+    sellPut.impliedVolatility = 0.25;
+    sellPut.dte = 30;
+
+    Option buyPut;
+    buyPut.strike = 95;
+    buyPut.side = Side::Put;
+    buyPut.bid = 1.00;
+    buyPut.ask = 1.20;
+    buyPut.impliedVolatility = 0.28;
+    buyPut.dte = 30;
+
+    Trade trade({buyPut}, {sellPut});
+    int halfDte = (30 + 1) / 2;  // 15
+
+    // At underlying = 120 (OTM), half-DTE P/L should be between
+    // current and expiration values (closer to expiration = more
+    // profit for short puts)
+    double currentPl = BlackScholes::currentPlAtPrice(trade, 120, 30);
+    double halfPl = BlackScholes::currentPlAtPrice(trade, 120, halfDte);
+    double expirationPl = trade.profitLossAtPrice(120);
+
+    // For a credit spread far OTM, as time passes profit increases
+    EXPECT_GT(halfPl, currentPl);
+    EXPECT_LT(halfPl, expirationPl + 0.01);
+}
+
 TEST_F(BlackScholesTest, CurrentPlAtExpirationMatchesTradePl) {
     // At DTE=0, Black-Scholes current P/L should match
     // Trade::profitLossAtPrice
