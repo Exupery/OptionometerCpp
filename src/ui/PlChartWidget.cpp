@@ -481,16 +481,23 @@ void PlChartWidget::drawTooltip(QPainter& p,
 
     QLocale locale(QLocale::English);
     QStringList lines;
+    QList<QColor> dotColors;  // invalid = no dot for that line
+    QList<bool> boldLines;
+
     QString priceLabel = m_data.ticker.isEmpty()
         ? "Price" : m_data.ticker;
     lines << QString("%1: %2")
         .arg(priceLabel, locale.toString(price, 'f', 2));
+    dotColors << QColor();
+    boldLines << false;
+
+    QColor expDotColor = expirationPl >= 0
+        ? kPositiveColor : kNegativeColor;
     lines << QString("Exp P/L: %1")
         .arg(locale.toString(qRound64(expirationPl)));
-    if (m_data.dte > 0) {
-        lines << QString("Cur P/L: %1")
-            .arg(locale.toString(qRound64(currentPl)));
-    }
+    dotColors << expDotColor;
+    boldLines << true;
+
     if (m_showDteHalf && m_data.dte > 1) {
         int halfDte = (m_data.dte + 1) / 2;
         double halfPl = BlackScholes::currentPlAtPrice(
@@ -499,20 +506,40 @@ void PlChartWidget::drawTooltip(QPainter& p,
         lines << QString("%1 DTE P/L: %2")
             .arg(halfDte)
             .arg(locale.toString(qRound64(halfPl)));
+        dotColors << kDteHalfPlColor;
+        boldLines << false;
+    }
+    if (m_data.dte > 0) {
+        QColor curDotColor = kCurrentPlColor;
+        curDotColor.setAlpha(255);
+        lines << QString("Cur P/L: %1")
+            .arg(locale.toString(qRound64(currentPl)));
+        dotColors << curDotColor;
+        boldLines << false;
     }
     lines << QString("\u2190 %1%  \u00B7  %2% \u2192")
         .arg(QString::number(probBelow, 'f', 1),
              QString::number(probAbove, 'f', 1));
+    dotColors << QColor();
+    boldLines << false;
 
     QFont font("Segoe UI", 9);
+    QFont boldFont = font;
+    boldFont.setBold(true);
     p.setFont(font);
     QFontMetrics fm(font);
+    QFontMetrics fmBold(boldFont);
 
+    constexpr int dotRadius = 4;
+    constexpr int dotSpace = dotRadius * 2 + 6;
     int lineHeight = fm.height() + 2;
     int tooltipWidth = 0;
-    for (const auto& line : lines)
-        tooltipWidth = std::max(tooltipWidth,
-            fm.horizontalAdvance(line));
+    for (int i = 0; i < lines.size(); ++i) {
+        const auto& metrics = boldLines[i] ? fmBold : fm;
+        int w = metrics.horizontalAdvance(lines[i]);
+        if (dotColors[i].isValid()) w += dotSpace;
+        tooltipWidth = std::max(tooltipWidth, w);
+    }
     tooltipWidth += 16;
     int tooltipHeight = lineHeight * lines.size() + 8;
 
@@ -529,13 +556,28 @@ void PlChartWidget::drawTooltip(QPainter& p,
     p.drawRoundedRect(QRectF(tx, ty, tooltipWidth,
                              tooltipHeight), 4, 4);
 
-    p.setPen(QColor(220, 220, 220));
     for (int i = 0; i < lines.size(); ++i) {
-        p.drawText(QRectF(tx + 8, ty + 4 + i * lineHeight,
+        double lineY = ty + 4 + i * lineHeight;
+        double textX = tx + 8;
+
+        if (dotColors[i].isValid()) {
+            p.setPen(Qt::NoPen);
+            p.setBrush(dotColors[i]);
+            double dotCenterY = lineY + lineHeight / 2.0;
+            p.drawEllipse(
+                QPointF(textX + dotRadius, dotCenterY),
+                dotRadius, dotRadius);
+            textX += dotSpace;
+        }
+
+        p.setFont(boldLines[i] ? boldFont : font);
+        p.setPen(QColor(220, 220, 220));
+        p.drawText(QRectF(textX, lineY,
                           tooltipWidth - 16, lineHeight),
                    Qt::AlignLeft | Qt::AlignVCenter,
                    lines[i]);
     }
+    p.setFont(font);
 }
 
 void PlChartWidget::paintEvent(QPaintEvent*) {
