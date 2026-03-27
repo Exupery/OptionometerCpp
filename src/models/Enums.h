@@ -8,7 +8,8 @@ enum class Side { Call, Put };
 enum class ScreenerMode {
     StrategyOptimizer,
     BullPutSpreadScreener,
-    BullPutSpreadOptimizer
+    BullPutSpreadOptimizer,
+    NakedPutSell
 };
 
 enum class TradeType {
@@ -24,6 +25,7 @@ inline QString screenerModeToString(ScreenerMode mode) {
     case ScreenerMode::StrategyOptimizer:       return "Strategy Optimizer";
     case ScreenerMode::BullPutSpreadScreener:   return "Bull Put Spread Screener";
     case ScreenerMode::BullPutSpreadOptimizer:  return "Bull Put Spread Optimizer";
+    case ScreenerMode::NakedPutSell:            return "Naked Puts";
     }
     return {};
 }
@@ -42,4 +44,8 @@ inline QString tradeTypeToString(TradeType type) {
 inline bool isBullPutMode(ScreenerMode mode) {
     return mode == ScreenerMode::BullPutSpreadScreener
         || mode == ScreenerMode::BullPutSpreadOptimizer;
+}
+
+inline bool isNakedPutMode(ScreenerMode mode) {
+    return mode == ScreenerMode::NakedPutSell;
 }

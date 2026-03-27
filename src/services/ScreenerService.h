@@ -30,6 +30,8 @@ struct ScreenerParams {
     int maxMargin = 10000;
     int minBullPutStrikeBelow = 2;
     int targetSellStrike = 0;
+    int maxNakedPutMargin = 25000;
+    int minNakedPutStrikeBelow = 5;
     QString apiToken;
 };
 
@@ -50,6 +52,10 @@ private:
         const ScreenerParams& params);
 
     static std::vector<std::vector<ScoredBullPut>> scoreBullPuts(
+        const std::vector<OptionChain>& chains,
+        const ScreenerParams& params);
+
+    static std::vector<std::vector<ScoredBullPut>> scoreNakedPuts(
         const std::vector<OptionChain>& chains,
         const ScreenerParams& params);
 };

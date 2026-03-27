@@ -27,6 +27,8 @@ void ScreenerPanel::setupUi() {
         screenerModeToString(ScreenerMode::BullPutSpreadScreener));
     m_modeCombo->addItem(
         screenerModeToString(ScreenerMode::BullPutSpreadOptimizer));
+    m_modeCombo->addItem(
+        screenerModeToString(ScreenerMode::NakedPutSell));
     form->addRow("Mode:", m_modeCombo);
 
     m_tradeTypeCombo = new QComboBox(this);
@@ -118,8 +120,28 @@ void ScreenerPanel::setupUi() {
 void ScreenerPanel::onModeChanged(int index) {
     auto mode = static_cast<ScreenerMode>(index);
     bool bullPut = isBullPutMode(mode);
-    m_tradeTypeCombo->setEnabled(!bullPut);
-    if (bullPut) m_tradeTypeCombo->setCurrentIndex(0);
+    bool nakedPut = isNakedPutMode(mode);
+
+    m_tradeTypeCombo->blockSignals(true);
+    m_tradeTypeCombo->clear();
+    if (nakedPut) {
+        m_tradeTypeCombo->addItem("Sell");
+        m_tradeTypeCombo->setEnabled(false);
+    } else {
+        m_tradeTypeCombo->addItem(
+            tradeTypeToString(TradeType::BullPutSpreads));
+        m_tradeTypeCombo->addItem(
+            tradeTypeToString(TradeType::Condors));
+        m_tradeTypeCombo->addItem(
+            tradeTypeToString(TradeType::TwoLeg));
+        m_tradeTypeCombo->addItem(
+            tradeTypeToString(TradeType::ThreeLeg));
+        m_tradeTypeCombo->addItem(
+            tradeTypeToString(TradeType::FourLeg));
+        m_tradeTypeCombo->setEnabled(!bullPut);
+    }
+    m_tradeTypeCombo->setCurrentIndex(0);
+    m_tradeTypeCombo->blockSignals(false);
 }
 
 void ScreenerPanel::updateCalendars() {
@@ -215,6 +237,8 @@ ScreenerParams ScreenerPanel::currentParams(
     p.maxMargin = settings.maxMargin;
     p.minBullPutStrikeBelow = settings.minBullPutStrikeBelow;
     p.targetSellStrike = settings.targetSellStrike;
+    p.maxNakedPutMargin = settings.maxNakedPutMargin;
+    p.minNakedPutStrikeBelow = settings.minNakedPutStrikeBelow;
     p.apiToken = settings.apiToken;
     return p;
 }

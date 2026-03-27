@@ -2,6 +2,7 @@
 #include "core/TradeBuilder.h"
 #include "core/StrategyOptimizerScorer.h"
 #include "core/BullPutScorer.h"
+#include "core/NakedPutScorer.h"
 #include "core/Weigher.h"
 #include "models/Trade.h"
 #include "services/MarketDataImporter.h"
@@ -15,6 +16,9 @@ ScreenerResult ScreenerService::runScreen(
 
     if (params.mode == ScreenerMode::StrategyOptimizer) {
         return scoreTrades(chains, params);
+    }
+    if (params.mode == ScreenerMode::NakedPutSell) {
+        return scoreNakedPuts(chains, params);
     }
     return scoreBullPuts(chains, params);
 }
@@ -140,6 +144,67 @@ ScreenerService::scoreBullPuts(
             + " aboveUnderlying=" + QString::number(aboveUnderlying)
             + " belowMinPct=" + QString::number(belowMinPct)
             + " wrongTarget=" + QString::number(wrongTarget)
+            + " filtered=" + QString::number(filtered.size()));
+
+        auto scored = scorer.score(filtered, underlyingPrice);
+
+        MarketDataImporter::appendToLog(
+            "  scored=" + QString::number(scored.size()));
+
+        std::sort(scored.begin(), scored.end(),
+            [](const ScoredBullPut& a, const ScoredBullPut& b) {
+                return a.score > b.score;
+            });
+        allResults.push_back(std::move(scored));
+    }
+    return allResults;
+}
+
+std::vector<std::vector<ScoredBullPut>>
+ScreenerService::scoreNakedPuts(
+    const std::vector<OptionChain>& chains,
+    const ScreenerParams& params)
+{
+    Weigher weigher(
+        params.pricePointWeight, params.profitPointWeight,
+        params.probabilityWeight, params.profitLossWeight,
+        params.annualReturnWeight, params.deltaWeight,
+        params.hundredTradeWeight);
+    NakedPutScorer scorer(
+        params.minProbability, params.minProfitAmount,
+        params.minAnnualReturn, params.maxNakedPutMargin, weigher);
+
+    double underlyingPrice = chains.empty()
+        ? 0.0 : chains.front().underlyingPrice;
+    double minBelow = params.minNakedPutStrikeBelow / 100.0;
+    double maxStrike = underlyingPrice * (1.0 - minBelow);
+
+    MarketDataImporter::appendToLog(
+        "scoreNakedPuts: chains=" + QString::number(chains.size())
+        + " underlyingPrice=" + QString::number(underlyingPrice, 'f', 2)
+        + " maxStrike=" + QString::number(maxStrike, 'f', 2)
+        + " minBelow=" + QString::number(params.minNakedPutStrikeBelow));
+
+    std::vector<std::vector<ScoredBullPut>> allResults;
+    for (const auto& chain : chains) {
+        TradeBuilder tb(chain);
+        auto allNakedPuts = tb.nakedPuts();
+
+        int aboveThreshold = 0;
+        std::vector<std::shared_ptr<Trade>> filtered;
+        for (const auto& trade : allNakedPuts) {
+            double strike = trade->getSells().front().strike;
+            if (strike > maxStrike) {
+                ++aboveThreshold;
+                continue;
+            }
+            filtered.push_back(trade);
+        }
+
+        MarketDataImporter::appendToLog(
+            "  Chain puts=" + QString::number(chain.puts.size())
+            + " nakedPuts=" + QString::number(allNakedPuts.size())
+            + " aboveThreshold=" + QString::number(aboveThreshold)
             + " filtered=" + QString::number(filtered.size()));
 
         auto scored = scorer.score(filtered, underlyingPrice);

@@ -34,6 +34,10 @@ struct AppSettings {
     int minBullPutStrikeBelow = 2;
     int targetSellStrike = 0;
 
+    // Naked Put Settings
+    int maxNakedPutMargin = 25000;
+    int minNakedPutStrikeBelow = 5;
+
     // Column visibility
     QStringList hiddenColumns;
 

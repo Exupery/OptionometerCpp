@@ -124,6 +124,25 @@ void SettingsDialog::setupUi(const AppSettings& settings) {
     bpForm->addRow("Target Sell Strike:", m_targetSellStrike);
 
     layout->addWidget(bpGroup);
+
+    // Naked Puts section
+    auto* npGroup = new QGroupBox("Naked Puts", content);
+    auto* npForm = new QFormLayout(npGroup);
+
+    m_maxNakedPutMargin = new QSpinBox(this);
+    m_maxNakedPutMargin->setRange(100, 1000000);
+    m_maxNakedPutMargin->setSingleStep(1000);
+    m_maxNakedPutMargin->setValue(settings.maxNakedPutMargin);
+    npForm->addRow("Max Margin:", m_maxNakedPutMargin);
+
+    m_minNakedPutStrikeBelow = new QSpinBox(this);
+    m_minNakedPutStrikeBelow->setRange(0, 50);
+    m_minNakedPutStrikeBelow->setSuffix("%");
+    m_minNakedPutStrikeBelow->setValue(
+        settings.minNakedPutStrikeBelow);
+    npForm->addRow("Min Strike Below:", m_minNakedPutStrikeBelow);
+
+    layout->addWidget(npGroup);
     layout->addStretch();
 
     scroll->setWidget(content);
@@ -155,5 +174,7 @@ AppSettings SettingsDialog::getSettings() const {
     s.maxMargin = m_maxMargin->value();
     s.minBullPutStrikeBelow = m_minBullPutStrikeBelow->value();
     s.targetSellStrike = m_targetSellStrike->value();
+    s.maxNakedPutMargin = m_maxNakedPutMargin->value();
+    s.minNakedPutStrikeBelow = m_minNakedPutStrikeBelow->value();
     return s;
 }

@@ -50,6 +50,8 @@ static void writeDebugLog(const QString& reason,
     out << "Max Margin: " << params.maxMargin << "\n";
     out << "Min Bull Put Strike Below: " << params.minBullPutStrikeBelow << "\n";
     out << "Target Sell Strike: " << params.targetSellStrike << "\n";
+    out << "Max Naked Put Margin: " << params.maxNakedPutMargin << "\n";
+    out << "Min Naked Put Strike Below: " << params.minNakedPutStrikeBelow << "\n";
     out << "API Token: " << (params.apiToken.isEmpty() ? "(empty)" : "(set)") << "\n";
     out << "\n";
 }

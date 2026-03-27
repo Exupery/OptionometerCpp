@@ -14,6 +14,7 @@ public:
     std::vector<std::shared_ptr<Trade>> fourLegTrades() const;
     std::vector<std::shared_ptr<Trade>> condors() const;
     std::vector<std::shared_ptr<Trade>> bullPutSpreads() const;
+    std::vector<std::shared_ptr<Trade>> nakedPuts() const;
     std::vector<std::shared_ptr<Trade>> enhancedTrades(
         const std::vector<std::shared_ptr<Trade>>& trades) const;
 

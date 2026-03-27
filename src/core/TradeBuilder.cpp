@@ -115,6 +115,17 @@ TradeBuilder::bullPutSpreads() const {
 }
 
 std::vector<std::shared_ptr<Trade>>
+TradeBuilder::nakedPuts() const {
+    std::vector<std::shared_ptr<Trade>> result;
+    for (const auto& put : m_chain.puts) {
+        result.push_back(std::make_shared<Trade>(
+            std::vector<Option>{},
+            std::vector<Option>{put}));
+    }
+    return result;
+}
+
+std::vector<std::shared_ptr<Trade>>
 TradeBuilder::buildSpreads(
     const std::vector<Option>& sells,
     const std::vector<Option>& buys) const

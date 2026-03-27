@@ -199,6 +199,8 @@ void MainWindow::onResultsReady(
         modeStr = "BPS Screen"; break;
     case ScreenerMode::BullPutSpreadOptimizer:
         modeStr = "BPS Optim"; break;
+    case ScreenerMode::NakedPutSell:
+        modeStr = "NP Sell"; break;
     }
 
     if (auto* trades = std::get_if<

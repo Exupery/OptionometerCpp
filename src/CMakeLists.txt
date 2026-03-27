@@ -5,6 +5,7 @@ set(LIB_SOURCES
     core/Scorer.cpp
     core/StrategyOptimizerScorer.cpp
     core/BullPutScorer.cpp
+    core/NakedPutScorer.cpp
     core/Normalizer.cpp
     core/Weigher.cpp
     core/BlackScholes.cpp
@@ -37,6 +38,7 @@ set(LIB_HEADERS
     core/Scorer.h
     core/StrategyOptimizerScorer.h
     core/BullPutScorer.h
+    core/NakedPutScorer.h
     core/Normalizer.h
     core/Weigher.h
     core/BlackScholes.h
